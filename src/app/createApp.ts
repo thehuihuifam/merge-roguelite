@@ -1,8 +1,10 @@
 import { GameLoop } from '@/app/GameLoop';
 import { Game } from '@/core/Game';
 import { createSeed } from '@/core/rng/SeededRandom';
+import { TimeController } from '@/core/time/TimeController';
 import { PointerInput } from '@/input/PointerInput';
 import { CanvasRenderer } from '@/render/CanvasRenderer';
+import { SlowMotionNearMissEffect } from '@/systems/SlowMotionNearMissEffect';
 
 export interface App {
   readonly game: Game;
@@ -17,7 +19,11 @@ export function createApp(root: HTMLElement): App {
   canvas.setAttribute('aria-label', 'Merge Roguelite board');
   root.appendChild(canvas);
 
-  const game = new Game();
+  const time = new TimeController();
+  const game = new Game({
+    timeController: time,
+    nearMissEffect: new SlowMotionNearMissEffect(time),
+  });
   const renderer = new CanvasRenderer(canvas);
   let lastAimX = Number.NaN;
 

@@ -27,6 +27,7 @@ export interface GameDependencies {
   readonly nearMissEffect?: INearMissEffect;
   readonly scoreModifiers?: readonly IScoreModifier[];
   readonly initialBest?: number;
+  readonly timeController?: TimeController;
 }
 
 export interface HeldBall {
@@ -56,7 +57,7 @@ export interface GameSnapshot {
  */
 export class Game {
   readonly events = new EventBus<GameEventMap>();
-  readonly time = new TimeController();
+  readonly time: TimeController;
 
   private readonly physics: PhysicsWorld;
   private readonly slowMo: ISlowMotionSelector;
@@ -83,6 +84,7 @@ export class Game {
   private resumeEvent: 'resumeAiming' | 'resumeDropping' = 'resumeAiming';
 
   constructor(deps: GameDependencies = {}) {
+    this.time = deps.timeController ?? new TimeController();
     this.physics = deps.physics ?? new PhysicsWorld();
     this.overflow = deps.overflowDetector ?? new OverflowDetector();
     this.slowMo = deps.slowMotionSelector ?? new NoopSlowMotionSelector();

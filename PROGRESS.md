@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 1.1
+Active Next Action: Task 1.2
 
 - 버전: v0.1.0 (MVP 베이스라인)
-- 마지막 갱신: Task 0.0 완료
+- 마지막 갱신: Task 1.1 완료
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -19,7 +19,7 @@ Active Next Action: Task 1.1
 
 ### v0.2.0 — 차별화 메커니즘 1차
 
-- [ ] **Task 1.1: 근접 실패 시 슬로우모션 진입 (INearMissEffect 구현체 1개)**
+- [x] **Task 1.1: 근접 실패 시 슬로우모션 진입 (INearMissEffect 구현체 1개)**
   - 파일 추가: `src/systems/SlowMotionNearMissEffect.ts` — `INearMissEffect` 구현. `onNearMissEnter` 에서 `TimeController.startSlowMotion(SLOW_MOTION.durationMs, SLOW_MOTION.timeScale)` 호출, `getIntensity()` 는 severity 를 그대로 반환.
   - 생성자에서 `TimeController` 를 주입받는다. `createApp.ts` 에서 `new Game({ nearMissEffect: new SlowMotionNearMissEffect(time) })` 형태로 연결하기 위해 `Game` 이 `deps.timeController` 를 받도록 `GameDependencies` 에 선택 필드 1개 추가(기존 기본값 유지).
   - 테스트 추가: `tests/slowMotionNearMissEffect.test.ts` — enter 시 timeScale 이 0.25 로 내려가고 exit 후 400ms 지나면 1 로 복귀.
