@@ -5,7 +5,7 @@
 Active Next Action: Task 1.2
 
 - 버전: v0.1.0 (MVP 베이스라인)
-- 마지막 갱신: Task 1.1 완료
+- 마지막 갱신: Task 1.1 완료 + infra.pages 배포 워크플로 추가
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -50,3 +50,11 @@ Active Next Action: Task 1.2
 - [ ] Task 2.6: `IAudioSystem` WebAudio 기반 효과음 (merge 피치는 티어에 비례)
 - [ ] Task 2.7: 배율 카드 확장 (`IScoreModifier` 를 지속 시간 기반으로 관리하는 `ModifierStack`)
 - [ ] Task 2.8: 모바일 터치 QA 및 캔버스 리사이즈 회귀 테스트(jsdom 환경 도입 여부 결정)
+
+### Infra
+
+- [x] **Task infra.pages: GitHub Pages 배포 워크플로 추가**
+  - `.github/workflows/pages.yml` 추가: main push + workflow_dispatch 트리거, permissions(contents: read, pages: write, id-token: write), concurrency group "pages"(cancel-in-progress: false)
+  - 단계: checkout → setup-node(Node 20, npm cache) → npm ci (실패 시 --legacy-peer-deps 우회) → npm run build → configure-pages → upload-pages-artifact(dist/) → deploy-pages(github-pages environment)
+  - ci.yml 과 역할 분리: ci.yml 은 PR 검증(Lint/Typecheck/Test), pages.yml 은 빌드+배포 전용
+  - vite.config.ts base: './' 설정으로 /merge-roguelite/ 하위 경로 배포 호환 확인
