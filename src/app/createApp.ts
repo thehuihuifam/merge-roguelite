@@ -1,4 +1,4 @@
-import { BALL_TIERS, MAX_TIER } from '@/config/gameConfig';
+import { BALL_TIERS, FX, MAX_TIER } from '@/config/gameConfig';
 import { GameLoop } from '@/app/GameLoop';
 import { composeRoundSnapshot } from '@/app/composeRoundSnapshot';
 import { Game } from '@/core/Game';
@@ -8,6 +8,7 @@ import { TimeController } from '@/core/time/TimeController';
 import { PointerInput } from '@/input/PointerInput';
 import { CanvasRenderer } from '@/render/CanvasRenderer';
 import { cardIndexAt } from '@/render/CardOverlayRenderer';
+import { triggerMergePop, triggerSquashStretch } from '@/render/BallRenderer';
 import { BasicParticleSystem } from '@/systems/BasicParticleSystem';
 import { BasicRoundSystem } from '@/systems/BasicRoundSystem';
 import { BombBallBehavior } from '@/systems/special/BombBallBehavior';
@@ -36,16 +37,11 @@ export function createApp(root: HTMLElement): App {
   root.appendChild(canvas);
 
   const time = new TimeController();
-  // Card draws run on their own seeded stream, reseeded per run so that the
-  // same run seed always offers the same hands.
   const cardRandom = new SeededRandom(createSeed());
   const cardProvider = new BasicMergeCardProvider(cardRandom);
   const slowMotionSelector = new CardSlowMotionSelector(cardProvider);
-  // Persistent save (Task 2.4): best score, total runs, last seed.
   const saveSystem = new LocalStorageSaveSystem();
   const saved = saveSystem.load();
-  // Special balls (Task 2.3): register after construction so behaviors can
-  // announce their life-cycle on the game's event bus.
   const specialBalls = new SpecialBallRegistry();
   const game = new Game({
     timeController: time,
@@ -79,15 +75,11 @@ export function createApp(root: HTMLElement): App {
       // Ignore storage errors.
     }
   });
-  // Roguelite rounds (Task 2.2): score targets, drop budget, clear-reward card.
-  // The round HUD (Task 2.12) reads through the same system every frame.
   const roundSystem = new BasicRoundSystem();
   const roundRunner = new RoundRunner(game, roundSystem, (round: RoundDefinition): MergeCard[] =>
     createRoundClearChoice(round.index),
   );
-  // Juice: merge particle bursts (Task 2.5).
   const particles = new BasicParticleSystem();
-  // Juice: audio SFX (Task 2.6) — WebAudio, merge pitch proportional to tier.
   const audio = new WebAudioSystem();
   const renderer = new CanvasRenderer(canvas, { particles });
   game.events.on('merge:resolved', (merge) => {
@@ -100,12 +92,20 @@ export function createApp(root: HTMLElement): App {
       color,
       intensity,
     });
-    // Audio: pitch proportional to tier + chain.
     if (tier === null) {
       audio.play('merge_big', { pitch: frequencyForMergeTier(null, merge.chainIndex), volume: 0.9 });
     } else {
       audio.play('merge', { pitch: frequencyForMergeTier(tier, merge.chainIndex), volume: 0.7 });
     }
+    if (tier === null || (tier !== null && tier >= FX.flashTierThreshold)) {
+      renderer.triggerFlashForTier(tier);
+      const shakeIntensity = tier === null ? 1.5 : 0.5 + tier * 0.18;
+      renderer.triggerShake(shakeIntensity);
+    }
+  });
+  game.events.on('ball:spawned', ({ ball }) => {
+    triggerMergePop(ball.id);
+    triggerSquashStretch(ball.id, ball.velocity.x, ball.velocity.y);
   });
   game.events.on('ball:dropped', ({ ball }) => {
     const spec = getTierSpec(ball.tier);
@@ -116,6 +116,7 @@ export function createApp(root: HTMLElement): App {
       intensity: 0.5,
     });
     audio.play('drop', { volume: 0.5 });
+    triggerSquashStretch(ball.id, 0, 1);
   });
   game.events.on('ball:detonated', ({ position }) => {
     particles.burst({
@@ -125,6 +126,8 @@ export function createApp(root: HTMLElement): App {
       intensity: 1,
     });
     audio.play('merge_big', { pitch: frequencyForMergeTier(null, 0), volume: 1 });
+    renderer.triggerFlash('#ffffff', FX.flashAlpha);
+    renderer.triggerShake(2.0);
   });
   game.events.on('danger:nearMissEnter', (sample) => {
     const ball = game.getSnapshot().balls.find((b) => b.id === sample.ballId);
@@ -175,7 +178,6 @@ export function createApp(root: HTMLElement): App {
         beginRun();
         return;
       }
-      // While the card overlay is up, a release belongs to the cards, not the board.
       if (game.state === 'slowmo_select') {
         return;
       }
@@ -211,10 +213,14 @@ export function createApp(root: HTMLElement): App {
     update: (stepMs: number): void => {
       game.update(stepMs);
       particles.update(stepMs);
+      const snapshot = game.getSnapshot();
+      for (const ball of snapshot.balls) {
+        if (ball.position.y > 600 && Math.abs(ball.velocity.y) > 2) {
+          triggerSquashStretch(ball.id, ball.velocity.x, ball.velocity.y);
+        }
+      }
     },
     render: (): void => {
-      // Round HUD (Task 2.12/2.15): the core snapshot stays round-free; the
-      // app layer merges the runner's HUD state in for display only.
       renderer.render(composeRoundSnapshot(game.getSnapshot(), roundRunner.getHudState()));
     },
   });

@@ -323,3 +323,25 @@ export const TEXT = {
   roundClearTitle: (round: number): string => `라운드 ${round} 클리어`,
   roundClearDesc: (points: number): string => `라운드 보너스: +${points}점.`,
 };
+
+/**
+ * Visual FX tuning (merge flash, camera shake, squash-stretch, merge pop).
+ * All magic numbers for polish effects live here.
+ */
+export const FX = {
+  /** Screen flash when a big tier merges or bomb explodes */
+  flashDurationMs: 100,
+  flashAlpha: 0.35,
+  /** Minimum result tier that triggers flash (tier 4 = value 32) */
+  flashTierThreshold: 4,
+  /** Camera shake */
+  shakeIntensity: 12,
+  shakeDurationMs: 250,
+  shakeDecay: 0.9,
+  /** Squash & stretch on collision/landing */
+  squashStretchScale: 1.1,
+  squashStretchDurationMs: 120,
+  /** Merge pop: new ball scales 1.3 -> 1.0 */
+  mergePopScale: 1.3,
+  mergePopDurationMs: 150,
+} as const;
