@@ -89,7 +89,7 @@ describe('Game.openRewardChoice', () => {
 
     expect(game.openRewardChoice(createRoundClearChoice(1))).toBe(true);
     expect(game.openRewardChoice(createRoundClearChoice(2))).toBe(false);
-    expect(game.getSnapshot().pendingCards[0]?.title).toContain('ROUND 1');
+    expect(game.getSnapshot().pendingCards[0]?.title).toContain('라운드 1');
     game.dispose();
   });
 });

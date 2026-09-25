@@ -1,8 +1,8 @@
-import { SPAWN_PENALTY_HUD } from '@/config/gameConfig';
+import { FONT_STACK, SPAWN_PENALTY_HUD, TEXT } from '@/config/gameConfig';
 import { PALETTE } from '@/render/palette';
 import type { GameSnapshot } from '@/core/Game';
 
-const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
+const FONT = FONT_STACK;
 
 /**
  * Shows the active `spawn_larger_balls` pressure (Task 2.19): the forced
@@ -21,7 +21,7 @@ export function drawSpawnPenaltyHud(ctx: CanvasRenderingContext2D, snapshot: Gam
   ctx.fillStyle = PALETTE.cardRiskText;
   ctx.font = `600 ${SPAWN_PENALTY_HUD.labelFontSize}px ${FONT}`;
   ctx.fillText(
-    `SPAWN ≥${penalty.minTier} · ${penalty.remainingIssuances} LEFT`,
+    TEXT.spawnPenaltyDetail(penalty.minTier, penalty.remainingIssuances),
     SPAWN_PENALTY_HUD.x,
     SPAWN_PENALTY_HUD.y,
   );

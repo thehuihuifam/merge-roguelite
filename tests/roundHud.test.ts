@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ROUNDS } from '@/config/gameConfig';
+import { ROUNDS, TEXT } from '@/config/gameConfig';
 import type { Game } from '@/core/Game';
 import { EventBus } from '@/core/events/EventBus';
 import { drawHud } from '@/render/HudRenderer';
@@ -186,8 +186,8 @@ describe('round HUD drawing', () => {
         dropBudget: 18,
       },
     });
-    expect(texts).toContain('ROUND 2 · 15 DROPS');
-    expect(texts).toContain('120 / 250');
+    expect(texts).toContain(TEXT.roundStatus(2, 15));
+    expect(texts).toContain(TEXT.scoreProgress(120, 250));
   });
 
   it('clamps the drops-left readout at zero past the budget', () => {
@@ -202,15 +202,15 @@ describe('round HUD drawing', () => {
         dropBudget: ROUNDS.firstDropBudget,
       },
     });
-    expect(texts).toContain(`ROUND 1 · 0 DROPS`);
+    expect(texts).toContain(TEXT.roundStatus(1, 0));
   });
 
   it('draws no round readout when the snapshot carries no round state', () => {
     const { ctx, texts } = createStubContext();
     drawHud(ctx, baseSnapshot());
-    expect(texts.some((text) => text.startsWith('ROUND'))).toBe(false);
-    // The pre-existing score HUD still draws.
-    expect(texts).toContain('SCORE');
-    expect(texts).toContain('BEST');
+    expect(texts.some((text) => text.startsWith('라운드'))).toBe(false);
+    // The pre-existing score HUD still draws — now Korean.
+    expect(texts).toContain(TEXT.scoreLabel);
+    expect(texts).toContain(TEXT.bestLabel);
   });
 });

@@ -1,4 +1,4 @@
-import { MERGE_CARDS } from '@/config/gameConfig';
+import { MERGE_CARDS, TEXT } from '@/config/gameConfig';
 import type { MergeCardContext, RiskCard } from '@/core/interfaces/IMergeCard';
 
 export const SPAWN_LARGER_BALLS_CARD_ID = 'risk-spawn-larger-balls';
@@ -19,8 +19,12 @@ export function createSpawnLargerBallsCard(): RiskCard {
     kind: 'risk',
     penalty: 'spawn_larger_balls',
     severity: MERGE_CARDS.spawnLargerSeverity,
-    title: 'HEAVY LOAD',
-    description: `Next ${MERGE_CARDS.spawnLargerSpawns} spawns come out at tier ${MERGE_CARDS.spawnLargerFloorTier} or bigger; next merge scores ×${MERGE_CARDS.spawnLargerMultiplier}.`,
+    title: TEXT.heavyLoadTitle,
+    description: TEXT.heavyLoadDesc(
+      MERGE_CARDS.spawnLargerSpawns,
+      MERGE_CARDS.spawnLargerFloorTier,
+      MERGE_CARDS.spawnLargerMultiplier,
+    ),
     apply: (context: MergeCardContext): void => {
       if (context.raiseSpawnTierFloor === undefined) {
         return;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BOARD, CARD_OVERLAY, SLOW_MOTION } from '@/config/gameConfig';
+import { BOARD, CARD_OVERLAY, SLOW_MOTION, TEXT } from '@/config/gameConfig';
 import { cardIndexAt, cardRects, drawCardOverlay } from '@/render/CardOverlayRenderer';
 import {
   createBonusScoreCard,
@@ -163,11 +163,11 @@ describe('card overlay drawing', () => {
 
     drawCardOverlay(ctx, hand);
 
-    expect(texts).toContain('CHOOSE');
+    expect(texts).toContain(TEXT.chooseHeader);
     for (const card of hand) {
       expect(texts).toContain(card.title);
     }
-    expect(texts.filter((text) => text === 'RISK')).toHaveLength(1);
+    expect(texts.filter((text) => text === TEXT.riskBadge)).toHaveLength(1);
   });
 
   it('badges every risk card in the hand', () => {
@@ -179,7 +179,7 @@ describe('card overlay drawing', () => {
       createTripleMultiplierCard(),
     ]);
 
-    expect(texts.filter((text) => text === 'RISK')).toHaveLength(2);
+    expect(texts.filter((text) => text === TEXT.riskBadge)).toHaveLength(2);
   });
 
   it('draws nothing for an empty hand', () => {

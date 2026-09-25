@@ -149,7 +149,7 @@ describe('drawSpawnPenaltyHud', () => {
 
     drawSpawnPenaltyHud(ctx, snapshot);
 
-    expect(texts).toEqual(['SPAWN ≥3 · 2 LEFT']);
+    expect(texts).toEqual(['스폰 ≥3 · 2개 남음']);
     expect(styles).toEqual(['#ff8fa3']);
   });
 

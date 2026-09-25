@@ -1,10 +1,10 @@
-import { BOARD } from '@/config/gameConfig';
+import { BOARD, FONT_STACK, TEXT } from '@/config/gameConfig';
 import { getTierSpec } from '@/core/ball/BallFactory';
 import { drawBallShape } from '@/render/BallRenderer';
 import { PALETTE } from '@/render/palette';
 import type { GameSnapshot } from '@/core/Game';
 
-const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
+const FONT = FONT_STACK;
 
 export function drawHud(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): void {
   ctx.save();
@@ -13,25 +13,25 @@ export function drawHud(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): 
   ctx.fillStyle = PALETTE.textMuted;
   ctx.font = `600 12px ${FONT}`;
   ctx.textAlign = 'left';
-  ctx.fillText('SCORE', 14, 12);
-  ctx.fillText('BEST', 14, 52);
+  ctx.fillText(TEXT.scoreLabel, 14, 12);
+  ctx.fillText(TEXT.bestLabel, 14, 52);
 
   ctx.fillStyle = PALETTE.text;
   ctx.font = `800 24px ${FONT}`;
-  ctx.fillText(snapshot.score.toLocaleString('en-US'), 14, 26);
+  ctx.fillText(snapshot.score.toLocaleString('ko-KR'), 14, 26);
   ctx.font = `700 16px ${FONT}`;
-  ctx.fillText(snapshot.best.toLocaleString('en-US'), 14, 66);
+  ctx.fillText(snapshot.best.toLocaleString('ko-KR'), 14, 66);
 
   if (snapshot.round !== undefined) {
     const dropsLeft = Math.max(0, snapshot.round.dropBudget - snapshot.round.dropsUsed);
     ctx.fillStyle = PALETTE.textMuted;
     ctx.font = `600 12px ${FONT}`;
     ctx.textAlign = 'left';
-    ctx.fillText(`ROUND ${snapshot.round.index} · ${dropsLeft} DROPS`, 14, 88);
+    ctx.fillText(TEXT.roundStatus(snapshot.round.index, dropsLeft), 14, 88);
     ctx.fillStyle = PALETTE.text;
     ctx.font = `700 14px ${FONT}`;
     ctx.fillText(
-      `${snapshot.round.scoreProgress.toLocaleString('en-US')} / ${snapshot.round.targetScore.toLocaleString('en-US')}`,
+      TEXT.scoreProgress(snapshot.round.scoreProgress, snapshot.round.targetScore),
       14,
       102,
     );
@@ -40,7 +40,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): 
   ctx.fillStyle = PALETTE.textMuted;
   ctx.font = `600 12px ${FONT}`;
   ctx.textAlign = 'right';
-  ctx.fillText('NEXT', BOARD.width - 14, 12);
+  ctx.fillText(TEXT.nextLabel, BOARD.width - 14, 12);
   ctx.restore();
 
   const nextSpec = getTierSpec(snapshot.nextTier);
@@ -57,7 +57,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): 
     ctx.font = `600 12px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText(`SLOW ×${snapshot.timeScale.toFixed(2)}`, BOARD.width / 2, 12);
+    ctx.fillText(TEXT.slowMotionBadgeDynamic(snapshot.timeScale.toFixed(2)), BOARD.width / 2, 12);
     ctx.restore();
   }
 }
@@ -90,21 +90,21 @@ export function drawGameOver(ctx: CanvasRenderingContext2D, snapshot: GameSnapsh
   ctx.textBaseline = 'middle';
   ctx.fillStyle = PALETTE.text;
   ctx.font = `800 40px ${FONT}`;
-  ctx.fillText('RUN OVER', BOARD.width / 2, BOARD.height / 2 - 50);
+  ctx.fillText(TEXT.runOverTitle, BOARD.width / 2, BOARD.height / 2 - 50);
   ctx.font = `700 22px ${FONT}`;
   ctx.fillText(
-    `Score ${snapshot.score.toLocaleString('en-US')}`,
+    TEXT.scoreSummary(snapshot.score.toLocaleString('ko-KR')),
     BOARD.width / 2,
     BOARD.height / 2,
   );
   ctx.fillStyle = PALETTE.textMuted;
   ctx.font = `600 16px ${FONT}`;
   ctx.fillText(
-    `Best ${snapshot.best.toLocaleString('en-US')}`,
+    TEXT.bestSummary(snapshot.best.toLocaleString('ko-KR')),
     BOARD.width / 2,
     BOARD.height / 2 + 32,
   );
-  ctx.fillText('Click / tap or press R to restart', BOARD.width / 2, BOARD.height / 2 + 80);
+  ctx.fillText(TEXT.restartHint, BOARD.width / 2, BOARD.height / 2 + 80);
   ctx.restore();
 }
 
@@ -116,9 +116,9 @@ export function drawIdle(ctx: CanvasRenderingContext2D): void {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = PALETTE.text;
   ctx.font = `800 36px ${FONT}`;
-  ctx.fillText('MERGE ROGUELITE', BOARD.width / 2, BOARD.height / 2 - 30);
+  ctx.fillText(TEXT.gameTitle, BOARD.width / 2, BOARD.height / 2 - 30);
   ctx.fillStyle = PALETTE.textMuted;
   ctx.font = `600 16px ${FONT}`;
-  ctx.fillText('Click / tap to start', BOARD.width / 2, BOARD.height / 2 + 20);
+  ctx.fillText(TEXT.startHint, BOARD.width / 2, BOARD.height / 2 + 20);
   ctx.restore();
 }

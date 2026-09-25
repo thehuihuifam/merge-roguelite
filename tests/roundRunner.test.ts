@@ -79,13 +79,13 @@ describe('createRoundClearRewardCard', () => {
     const first = createRoundClearRewardCard(1);
     expect(first.id).toBe(ROUND_CLEAR_CARD_ID);
     expect(first.kind).toBe('reward');
-    expect(first.title).toBe('ROUND 1 CLEAR');
-    expect(first.description).toContain(`+${ROUNDS.rewardBaseScore} points`);
+    expect(first.title).toBe('라운드 1 클리어');
+    expect(first.description).toContain(`+${ROUNDS.rewardBaseScore}점`);
 
     const third = createRoundClearRewardCard(3);
-    expect(third.title).toBe('ROUND 3 CLEAR');
+    expect(third.title).toBe('라운드 3 클리어');
     expect(third.description).toContain(
-      `+${ROUNDS.rewardBaseScore + 2 * ROUNDS.rewardScorePerRound} points`,
+      `+${ROUNDS.rewardBaseScore + 2 * ROUNDS.rewardScorePerRound}점`,
     );
   });
 

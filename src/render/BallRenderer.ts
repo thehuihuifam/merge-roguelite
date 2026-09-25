@@ -1,7 +1,10 @@
+import { FONT_STACK } from '@/config/gameConfig';
 import { getTierSpec } from '@/core/ball/BallFactory';
 import { PALETTE } from '@/render/palette';
 import type { Ball } from '@/core/types';
 import type { SpecialBallKind } from '@/core/interfaces/ISpecialBall';
+
+const FONT = FONT_STACK;
 
 export function drawBallShape(
   ctx: CanvasRenderingContext2D,
@@ -24,20 +27,19 @@ export function drawBallShape(
 
   const fontSize = Math.max(10, Math.floor(spec.radius * (spec.value >= 1000 ? 0.62 : 0.8)));
   ctx.fillStyle = PALETTE.ballText;
-  ctx.font = `700 ${fontSize}px system-ui, -apple-system, 'Segoe UI', sans-serif`;
+  ctx.font = `700 ${fontSize}px ${FONT}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(String(spec.value), x, y + 1);
 
   if (special === 'bomb') {
-    // Hazard ring + fuse spark make the bomb readable at a glance.
     ctx.lineWidth = 3;
     ctx.strokeStyle = PALETTE.bombRing;
     ctx.beginPath();
     ctx.arc(x, y, spec.radius - 1.5, 0, Math.PI * 2);
     ctx.stroke();
     ctx.fillStyle = PALETTE.bombSpark;
-    ctx.font = `700 ${Math.max(10, Math.floor(spec.radius * 0.55))}px system-ui, -apple-system, 'Segoe UI', sans-serif`;
+    ctx.font = `700 ${Math.max(10, Math.floor(spec.radius * 0.55))}px ${FONT}`;
     ctx.fillText('✹', x + spec.radius * 0.55, y - spec.radius * 0.55);
   }
   ctx.restore();

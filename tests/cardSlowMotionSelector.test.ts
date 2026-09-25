@@ -35,7 +35,7 @@ describe('CardSlowMotionSelector', () => {
     }
     expect(request.cards).toHaveLength(SLOW_MOTION.cardCount);
     expect(request.cards.filter(isRiskCard)).toHaveLength(SLOW_MOTION.riskCardCount);
-    expect(request.cards.some((card) => card.title === '+10000 PTS')).toBe(true);
+    expect(request.cards.some((card) => card.title === '+10000 점')).toBe(true);
 
     const timeoutPick = selector.onTimeout(makeMerge(null, 10000));
     expect(timeoutPick).not.toBeNull();
