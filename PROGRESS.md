@@ -5,10 +5,12 @@
 Active Next Action: Task 2.20 — 활성 점수 수정자의 읽기 전용 스냅샷 추가
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.19 완료 — 스폰 압박의 남은 발급 수 HUD 표시
+- 마지막 갱신: Task 2.19 완료 — 스폰 압박의 남은 발급 수 HUD 표시 (배치 세션 종료, Task 2.35~2.39 보충)
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
-## 이번 루프 기록 (2026-09-25)
+## 이번 루프 기록
+
+### 백로그 보충 전용 루프 (2026-09-25, Task 2.15~2.34 제안)
 
 - 진입 시 미완료 0개 → AGENTS.md 4.11.2에 따라 구현 없이 백로그 보충만 수행.
 - 이번 세션 완료 태스크 0개, 보충 전 미완료 0개, 보충 수 `20 - 0 = 20`개, 보충 후 미완료 20개.
@@ -16,6 +18,14 @@ Active Next Action: Task 2.20 — 활성 점수 수정자의 읽기 전용 스�
 - 중복 점검: 세이브·사운드·파티클·ModifierStack·위험선 페널티는 이미 구현됨. CONTEXT.md의 오래된 미구현 목록보다 실제 코드와 완료 기록을 우선해 재구현 태스크를 만들지 않았다. 라운드 HUD는 구현체가 있지만 `createApp.ts`의 렌더 호출에서 `round` 합성이 빠져 있으므로 연결 회귀만 별도 등록했다.
 - 검증: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test` 통과 (27개 파일, 207개 테스트). 코드 변경 및 브라우저 수동 QA는 수행하지 않음.
 - 아래 신규 태스크는 각각 10분 이내의 작업 단위이며, 선행 태스크를 명시했다. 이번 PR 머지 시 제안 승인으로 간주하고 다음 세션부터 순서대로 수행한다.
+
+### 배치 구현 루프 (2026-09-25, Task 2.15~2.19 구현 + 보충)
+
+- 진입 시 미완료 20개(Task 2.15~2.34) → 5개 완료(Task 2.15~2.19) → 세션 종료 시점 미완료 15개.
+- AGENTS.md 4.11.3 보충 수 = `20 - 15 = 5`개 → Task 2.35~2.39 추가, 보충 후 미완료 20개.
+- 세션 형태: 사용자 지시로 AGENTS.md 4.2 기본값(세션당 1개)을 이번 세션만 예외 처리해 5개를 연속 수행했다. 태스크별 커밋 5개 + 보충 커밋 1개.
+- 작업 브랜치는 이 세션에 고정된 `arena/01a0d71b-merge-roguelite` 를 사용했다(AGENTS.md 4.3 의 배치 브랜치 명명 대신 세션 브랜치 규칙 우선).
+- 검증: `npm ci` → `npm run lint` → `npm run typecheck` → `npm test`(29파일 239테스트) → `npm run build` 전부 통과. 브라우저 수동 QA 는 미수행.
 
 ## Task Backlog
 
@@ -269,3 +279,32 @@ Active Next Action: Task 2.20 — 활성 점수 수정자의 읽기 전용 스�
   - 선행: Task 2.24. 신규: `src/systems/bindCardChoiceAudio.ts`, `tests/cardChoiceAudio.test.ts`. 기존 수정: `src/app/createApp.ts`, `src/config/gameConfig.ts`.
   - 확장 방식: `IAudioSystem`의 기존 card_pick cue를 `card:chosen` 구독자로 재생한다. 리스크는 낮은 pitch, 자동 선택은 낮은 volume으로 구분하고 app의 수동 입력 경로 직접 재생은 제거해 중복을 막는다.
   - 완료 기준: 수동 보상/리스크/타임아웃별 설정값과 성공당 정확히 1회 재생, dispose 후 무반응 테스트 통과. 새 오디오 엔진/의존성 없이 선택 결과 인지를 강화한다. 10분.
+
+### 신규 보충 — 시드 공유와 연출 확장 (Task 2.35~2.39)
+
+공통: 세션 종료 시점 미완료 15개 → 20개 복구분. 모두 기존 인터페이스 구현 또는 선택 필드 추가로 붙이고, 수치는 `src/config/gameConfig.ts`, 인터페이스 확장은 `docs/ARCHITECTURE.md`, 규칙 변경은 `docs/GDD.md` 에 같은 PR 에서 반영한다. 각 태스크는 10분 이내이며 완료 기준에 더해 lint/typecheck/전체 테스트 통과가 필수다.
+
+- [ ] **Task 2.35: 시드 URL 진입점과 부팅 시드 표시**
+  - 신규: `src/app/readSeedFromLocation.ts`, `tests/readSeedFromLocation.test.ts`. 기존 수정: `src/app/createApp.ts`, `src/render/HudRenderer.ts`, `src/config/gameConfig.ts`.
+  - 확장 방식: `?seed=1234` 쿼리를 읽어 **첫 런만** 그 시드로 시작하고 이후 재시작은 기존 `createSeed()` 를 유지한다. 읽은 시드는 idle/게임오버 오버레이에 `SEED 1234` 로 표시해 공유·재현이 가능하게 한다(새 인터페이스 없음, 데일리 시드의 최소 기반).
+  - 완료 기준: 파싱 규칙(정수·범위·음수·부재·소수)과 잘못된 값 폴백 테스트, 스냅샷 `seed` 가 부팅 시드와 일치, 오버레이 문구에 시드가 들어가는 Canvas 스텁 테스트 통과. 10분.
+
+- [ ] **Task 2.36: 같은 시드 재도전(S 키)**
+  - 기존 수정: `src/input/PointerInput.ts`(선택 핸들러 `onRetrySameSeed?` 추가), `src/app/createApp.ts`, `src/render/HudRenderer.ts`, `src/render/palette.ts`. 신규: `tests/retrySameSeed.test.ts`.
+  - 확장 방식: 게임오버에서 `S` 키로 `game.getSnapshot().seed` 를 그대로 써서 재시작한다. `PointerInput` 은 시드를 모르는 채 콜백만 올리고, 안내 문구는 게임오버 오버레이에 `R restart · S same seed` 로 노출한다. 기존 `onRestart` 경로는 그대로 둔다.
+  - 완료 기준: S 키 1회 호출, 수정키 조합 비간섭, 게임오버 외 상태 무반응, 같은 시드 재시작 시 첫 드롭 티어가 원래 런과 동일한 결정성 테스트 통과. 10분.
+
+- [ ] **Task 2.37: 근접 실패 화면 흔들림(스크린 셰이크)**
+  - 신규: `src/render/ScreenShakeAnimator.ts`, `tests/screenShake.test.ts`. 기존 수정: `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`.
+  - 확장 방식: severity 기반 진폭과 프레임 dt 감쇠만 계산하는 순수 애니메이터를 추가하고 `CanvasRenderer` 가 보드 클립 변환에 오프셋을 적용한다(비네트와 같은 `Clock` 재사용). 게임 오버에서는 흔들림을 멈추고 감쇠만 진행한다.
+  - 완료 기준: severity 0 무흔들림, 진입 시 진폭 상한, 감쇠 후 0 복귀, 같은 입력 시퀀스에 결정적, 캔버스 스텁 안전 드로잉 테스트 통과. 붉은 비네트·심박과 겹치지 않는 촉각적 연출, 10분.
+
+- [ ] **Task 2.38: 근접 실패 햅틱 진동(모바일)**
+  - 신규: `src/systems/bindNearMissVibration.ts`, `tests/nearMissVibration.test.ts`. 기존 수정: `src/app/createApp.ts`, `src/config/gameConfig.ts`.
+  - 확장 방식: `danger:nearMissEnter/Update/Exit` 구독자로 `navigator.vibrate` 를 호출하는 바인더를 추가한다. 패턴과 최소 재진입 간격은 새 상수 블록으로 두고, API 부재·예외는 삼켜 데스크톱/Node 테스트에서 no-op 이 되게 한다.
+  - 완료 기준: enter 시 severity 비례 패턴, update 폭주 스로틀, exit/런 종료/재시작 시 정지, API 없는 환경 no-op, dispose 후 무반응 테스트 통과. 10분.
+
+- [ ] **Task 2.39: 폭탄 공 폭발 반경 힌트**
+  - 신규: `src/render/SpecialBallHintRenderer.ts`, `tests/specialBallHint.test.ts`. 기존 수정: `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`.
+  - 확장 방식: 스냅샷에서 `ball.special === 'bomb'` 인 공 주위에 `SPECIAL_BALLS.bombBlastRadius` 크기의 점선 힌트 원을 그려 폭발 범위를 예측 가능하게 한다(공 뒤 · 카드 오버레이 앞). 수치는 기존 상수를 재사용하고 새 물리 로직은 만들지 않는다.
+  - 완료 기준: 폭탄만 힌트 표시·일반 공 무표시, 반경이 설정값과 일치, 작은 공 반지름으로 클램프, Canvas 스텁 테스트 통과. 폭탄을 쓸지 판단할 정보를 주는 연출, 10분.
