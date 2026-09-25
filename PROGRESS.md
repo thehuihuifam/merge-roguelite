@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.1
+Active Next Action: Task 2.4
 
 - 버전: v0.1.0 (MVP 베이스라인)
-- 마지막 갱신: Task 1.4 완료 — 카드 선택 UI 렌더링과 포인터 입력 연결
+- 마지막 갱신: Task 2.3 완료 — 폭탄 특수 공(첫 충돌 시 인접 공 제거)과 스폰 확률 설정
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -57,9 +57,26 @@ Active Next Action: Task 2.1
 
 ### 이후 (v0.3.0+, 순서 미정 — 각각 착수 시 세부 스펙을 먼저 태스크로 쪼갠다)
 
-- [ ] Task 2.1: `INearMissEffect` 붉은 화면 + 심박 펄스 연출 강화 (`src/render/` 비네트 애니메이션)
-- [ ] Task 2.2: `IRoundSystem` 기본 구현 (라운드별 목표 점수, 클리어 시 카드 보상)
-- [ ] Task 2.3: `ISpecialBall` 폭탄 공 (인접 공 제거) 구현과 스폰 확률 설정
+- [x] **Task 2.1: `INearMissEffect` 붉은 화면 + 심박 펄스 연출 강화 (`src/render/` 비네트 애니메이션)**
+  - 실제 구현: `src/render/NearMissVignetteRenderer.ts` 추가 — `NearMissVignetteAnimator` 가 프레임마다 `nearMissIntensity` 를 받아 페이드인 120ms(`NEAR_MISS_FX.fadeInMs`), 종료 후 300ms 페이드아웃을 만들고, `heartbeatPulse(phase)` 의 "lub-dub" 2단 박동이 비네트 밝기를 밀어 올린다. 심박 주기는 severity 0 에서 900ms → 1 에서 450ms 로 짧아진다(`heartbeatPeriodMs`).
+  - `drawNearMissVignette` 가 기존 `DangerLineRenderer` 의 정적 붉은 비네트를 대체해 레이디얼 그라디언트를 그린다(위험선 선 자체는 `drawDangerLine` 유지). 게임 오버에서는 `hold` 플래그로 비네트와 박동을 멈춘 채 유지한다(GDD 3.3).
+  - `CanvasRenderer` 는 주입 가능한 `Clock`(기본 `performance.now`)로 프레임 dt 를 계산해 애니메이터를 진행하고, 클립 안에서 공 뒤 · 카드 오버레이/HUD 아래에 비네트를 합성한다.
+  - 상수는 `src/config/gameConfig.ts` 의 `NEAR_MISS_FX` 블록, 비네트 색은 `src/render/palette.ts` 의 `nearMissVignetteRgb` 로 이동(매직 넘버 금지 규칙).
+  - 테스트 추가: `tests/nearMissVignette.test.ts` 11건 — 심박 주기·클램프, 펄스 0..1·사이클 랩, lub-dub 두 봉우리, 페이드인/페이드아웃 타이밍, 게임 오버 hold, severity 별 심박 속도 차이, 페이드아웃 중 박동 유지, 스텁 ctx 드로잉 3건(그라디언트 정지색·프레임 크기·알파 0 무그림).
+- [x] **Task 2.2: `IRoundSystem` 기본 구현 (라운드별 목표 점수, 클리어 시 카드 보상)**
+  - 실제 구현: `src/systems/BasicRoundSystem.ts` — 라운드마다 "그 라운드 안에서 벌어야 하는 점수" 목표(`ROUNDS.firstTargetScore` 150 + 100/라운드)와 드롭 예산(15 + 3/라운드)을 관리. 진행도는 라운드 시작 시점부터의 점수 델타라서, 큰 점수가 한 번에 튀어도 다음 라운드가 덤으로 클리어되지 않는다. 예산을 먼저 쓰면 라운드는 보상 없이 넘어간다(`isDropBudgetExhausted` — `IRoundSystem` 에 필드 추가).
+  - `src/systems/cards/RoundClearRewardCard.ts` — 클리어 보상 카드 `+N점`(N = 50 + 25×(라운드−1))을 즉시 지급하는 `MergeCard` 팩토리(`ROUND_CLEAR_CARD_ID`).
+  - `src/systems/RoundRunner.ts` — `EventBus` 구독(`ball:dropped`, `score:changed`, `run:started`)으로 라운드를 진행하고, 클리어 시 `Game.applyRewardCard` 로 보상 카드를 적용한 뒤 다음 라운드로 넘어간다. 보상 적용이 다시 쏘는 `score:changed` 는 가드로 막아 보상이 라운드당 1회만 지급된다.
+  - `Game.applyRewardCard(card)` 메서드 추가 — `chooseCard` 와 같은 카드 컨텍스트(`buildCardContext` 로 추출)를 쓰고, idle/game_over 에서는 거부한다. `createApp.ts` 에 `BasicRoundSystem` + `RoundRunner` 연결(해제는 `dispose`).
+  - 테스트 추가: `tests/basicRoundSystem.test.ts` 7건(목표/예산 증가, 라운드 스코프 진행도, 점수 차감 시 클리어 해제, 예산 소진, advance/reset), `tests/roundRunner.test.ts` 8건(보상 카드 수치·적용, 클리어→보상→다음 라운드, 예산 소진 시 무보상 스킵, 이미 클리어된 라운드 보호, run:started 리셋, dispose 후 무반응, 실제 Game 통합 — 보상 재진입 가드 검증), `tests/game.test.ts` 2건(`applyRewardCard` 승인/거부).
+  - 미연결: 라운드/목표/예산 HUD 표시는 Task 2.12, 보상을 자동 지급 대신 카드 선택지로 주는 것은 Task 2.13 로 백로그 추가.
+- [x] **Task 2.3: `ISpecialBall` 폭탄 공 (인접 공 제거) 구현과 스폰 확률 설정**
+  - 실제 구현: `src/systems/special/BombBallBehavior.ts` — `ISpecialBallBehavior` 구현(kind `bomb`). 머지하지 않고(`canMergeWith` → false) 첫 충돌에 폭발한다. `blastRadius` 필드를 `ISpecialBallBehavior` 에 추가(기존 메서드 무변경)해 호스트(Game)가 폭발을 실행하고, 생명주기 훅은 `bomb:spawned`/`bomb:contact` 이벤트를 발화한다. `onMerged` 는 불변식 가드(폭탄은 병합될 수 없다).
+  - `src/systems/special/SpecialBallRegistry.ts` — `ISpecialBallRegistry` 구현. `createApp` 에서 `Game` 생성 후 폭탄 행동을 등록해 이벤트 버스를 주입할 수 있게 했다.
+  - 폭발 대상은 순수 함수 `blastVictims(bomb, balls, radius, contact)`: 자신 + 닿은 공(반경 밖이어도 무조건) + 중심 기준 반경 90px(`SPECIAL_BALLS.bombBlastRadius`) 안의 공. `Game.resolveMerges` 가 머지 규칙 앞단에서 특수 공 쌍을 먼저 소비해 폭탄이 머지로 새지 않는다.
+  - 스폰 확률: `SPECIAL_BALLS.bombSpawnChance`(= 0.05)를 `BallFactory.rollSpawnSpecial()` 이 매 드롭에 굴린다. `Game` 에 `specialBalls`/`specialSpawnChance` 의존 선택 필드를 추가해 테스트가 확률 0/1로 고정할 수 있다. `Ball.special` 필드(선택)와 `HeldBall.special`/`GameSnapshot.nextSpecial`로 홀드·NEXT 미리보기까지 폭탄 표시(황색 테두리 + `✹`)가 붙는다.
+  - 이벤트 추가: `bomb:spawned`, `bomb:contact`, `ball:detonated`(제거된 id 일괄 포함).
+  - 테스트 추가: `tests/specialBalls.test.ts` 11건 — 행동/불변식/반경 검증, `blastVictims` 순수 로직 3건(반경 내 제거·접촉 공 강제 포함·스택 정리), 레지스트리 교체, 실제 Game 통합 4건(확률 1 폭탄 발급·이벤트, 확률 0 일반 공, 홀로 앉은 폭탄 미폭발, 첫 충돌 폭발로 보드 정리), `tests/ballFactory.test.ts` 3건(스폰 확률 경계·예외·특수 태그).
 - [ ] Task 2.4: `ISaveSystem` localStorage 구현 (베스트 점수, 총 런 수)
 - [ ] Task 2.5: `IParticleSystem` 머지 파티클 버스트
 - [ ] Task 2.6: `IAudioSystem` WebAudio 기반 효과음 (merge 피치는 티어에 비례)
@@ -68,6 +85,9 @@ Active Next Action: Task 2.1
 - [ ] Task 2.9: `MergeCardContext` 에 위험선 이동 필드 추가 후 `raise_danger_line` 카드를 실동작으로 연결 — 현재 이 카드는 점수 −50 만 적용하고 `severity` 0.5 만 들고 있어 보상이 없는 순수 페널티다(Task 1.2 에서 발견)
 - [ ] Task 2.10: 최대 티어 소멸(`resultTier === null`, 10,000점 보너스)에도 카드 선택창 열기 — 지금은 `CardSlowMotionSelector` 가 결과 티어가 있는 머지만 취급해서, 가장 화려한 합체가 선택 없이 지나간다(Task 1.3 에서 발견). `minResultTier` 판정에 `resultTier === null` 케이스를 추가하고 테스트 1건 보강.
 - [ ] Task 2.11: 카드 선택 키보드 지원(1/2/3 키) — 지금은 포인터 `onSelect` 만 연결돼 있어 키보드 플레이어는 타임아웃에만 의존한다(Task 1.4 에서 발견). `PointerInput` 의 keydown 스위치에 숫자 키를 추가하고 `createApp.ts` 에서 인덱스 → `game.chooseCard` 로 연결.
+- [ ] Task 2.12: 라운드 HUD 표시(라운드 번호 · 목표 진행도 · 남은 드롭) — 지금은 라운드 진행이 테스트로만 관찰되고 화면에 나오지 않는다(Task 2.2 에서 발견). `GameSnapshot` 확장 여부와 함께 착수 시 세부 스펙을 먼저 쪼갠다.
+- [ ] Task 2.13: 라운드 클리어 보상을 자동 지급 대신 카드 선택지로 — 지금은 `RoundRunner` 가 `createRoundClearRewardCard` 를 즉시 apply 해 버려 플레이어의 선택이 없다(Task 2.2 에서 발견). 슬로우모션 카드 선택 플로우 재활용을 검토한다.
+- [ ] Task 2.14: 폭탄 폭발 득점 보상 설계 — 지금은 제거만 하고 점수가 없어, 큰 공을 지울수록 손해로 느껴질 수 있다(Task 2.3 에서 발견). 제거된 공 값의 일정 비율 지급 등을 GDD 와 함께 결정한다.
 
 ### Infra
 

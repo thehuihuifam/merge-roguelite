@@ -33,7 +33,7 @@ export function drawHud(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): 
   ctx.save();
   ctx.translate(BOARD.width - 14 - 20, 48);
   ctx.scale(previewScale, previewScale);
-  drawBallShape(ctx, 0, 0, snapshot.nextTier);
+  drawBallShape(ctx, 0, 0, snapshot.nextTier, 1, snapshot.nextSpecial);
   ctx.restore();
 
   if (snapshot.timeScale < 1) {
@@ -64,7 +64,7 @@ export function drawHeldBall(
   ctx.lineTo(snapshot.held.x, BOARD.height);
   ctx.stroke();
   ctx.restore();
-  drawBallShape(ctx, snapshot.held.x, spawnY, snapshot.held.tier);
+  drawBallShape(ctx, snapshot.held.x, spawnY, snapshot.held.tier, 1, snapshot.held.special);
 }
 
 export function drawGameOver(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): void {

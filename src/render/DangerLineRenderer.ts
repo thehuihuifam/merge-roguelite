@@ -3,8 +3,8 @@ import { PALETTE } from '@/render/palette';
 
 /**
  * Draws the danger line. Intensity (0..1) comes from the near-miss hook and
- * drives line opacity plus a red vignette – the v0.1.0 stand-in for the full
- * near-miss presentation.
+ * drives the line opacity. The red vignette itself is animated separately by
+ * `src/render/NearMissVignetteRenderer.ts` (Task 2.1).
  */
 export function drawDangerLine(ctx: CanvasRenderingContext2D, y: number, intensity: number): void {
   ctx.save();
@@ -17,21 +17,4 @@ export function drawDangerLine(ctx: CanvasRenderingContext2D, y: number, intensi
   ctx.lineTo(BOARD.width, y);
   ctx.stroke();
   ctx.restore();
-
-  if (intensity > 0) {
-    ctx.save();
-    const gradient = ctx.createRadialGradient(
-      BOARD.width / 2,
-      BOARD.height / 2,
-      BOARD.height * 0.35,
-      BOARD.width / 2,
-      BOARD.height / 2,
-      BOARD.height * 0.75,
-    );
-    gradient.addColorStop(0, 'rgba(255, 77, 109, 0)');
-    gradient.addColorStop(1, `rgba(255, 77, 109, ${(0.45 * intensity).toFixed(3)})`);
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, BOARD.width, BOARD.height);
-    ctx.restore();
-  }
 }

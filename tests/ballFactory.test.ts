@@ -66,3 +66,31 @@ describe('BallFactory', () => {
     expect(() => new BallFactory(new SeededRandom(1), 0)).toThrow(RangeError);
   });
 });
+
+describe('BallFactory special balls', () => {
+  it('rolls only bombs at spawn chance 1 and never at 0', () => {
+    const always = new BallFactory(new SeededRandom(3), SPAWNABLE_TIER_COUNT, 1);
+    const never = new BallFactory(new SeededRandom(3), SPAWNABLE_TIER_COUNT, 0);
+    for (let i = 0; i < 20; i += 1) {
+      expect(always.rollSpawnSpecial()).toBe('bomb');
+      expect(never.rollSpawnSpecial()).toBeUndefined();
+    }
+  });
+
+  it('rejects out-of-range special spawn chances', () => {
+    expect(() => new BallFactory(new SeededRandom(1), SPAWNABLE_TIER_COUNT, -0.1)).toThrow(
+      RangeError,
+    );
+    expect(() => new BallFactory(new SeededRandom(1), SPAWNABLE_TIER_COUNT, 1.1)).toThrow(
+      RangeError,
+    );
+  });
+
+  it('tags created balls with their special kind', () => {
+    const factory = new BallFactory(new SeededRandom(3), SPAWNABLE_TIER_COUNT, 1);
+    const bomb = factory.create(0, { x: 1, y: 2 }, 0, 'bomb');
+    expect(bomb.special).toBe('bomb');
+    const plain = factory.create(0, { x: 1, y: 2 }, 0);
+    expect(plain.special).toBeUndefined();
+  });
+});

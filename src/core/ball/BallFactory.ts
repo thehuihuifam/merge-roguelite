@@ -1,4 +1,5 @@
-import { BALL_TIERS, MAX_TIER, SPAWNABLE_TIER_COUNT } from '@/config/gameConfig';
+import { BALL_TIERS, MAX_TIER, SPAWNABLE_TIER_COUNT, SPECIAL_BALLS } from '@/config/gameConfig';
+import type { SpecialBallKind } from '@/core/interfaces/ISpecialBall';
 import type { Ball, BallId, BallTierSpec, Vec2 } from '@/core/types';
 import type { SeededRandom } from '@/core/rng/SeededRandom';
 
@@ -24,9 +25,13 @@ export class BallFactory {
   constructor(
     private readonly rng: SeededRandom,
     private readonly spawnableTierCount: number = SPAWNABLE_TIER_COUNT,
+    private readonly specialSpawnChance: number = SPECIAL_BALLS.bombSpawnChance,
   ) {
     if (spawnableTierCount < 1 || spawnableTierCount > BALL_TIERS.length) {
       throw new RangeError(`spawnableTierCount out of range: ${spawnableTierCount}`);
+    }
+    if (specialSpawnChance < 0 || specialSpawnChance > 1) {
+      throw new RangeError(`specialSpawnChance out of range: ${specialSpawnChance}`);
     }
   }
 
@@ -48,7 +53,15 @@ export class BallFactory {
     return this.spawnableTierCount - 1;
   }
 
-  create(tier: number, position: Vec2, spawnedAt: number): Ball {
+  /**
+   * Rolls whether the next dispenser ball is special. Bomb only for now;
+   * more kinds land with their own spawn entries later.
+   */
+  rollSpawnSpecial(): SpecialBallKind | undefined {
+    return this.rng.next() < this.specialSpawnChance ? 'bomb' : undefined;
+  }
+
+  create(tier: number, position: Vec2, spawnedAt: number, special?: SpecialBallKind): Ball {
     if (!isValidTier(tier)) {
       throw new RangeError(`Cannot create ball with invalid tier ${tier}`);
     }
@@ -58,6 +71,7 @@ export class BallFactory {
       position: { x: position.x, y: position.y },
       velocity: { x: 0, y: 0 },
       spawnedAt,
+      ...(special === undefined ? {} : { special }),
     };
     this.nextId += 1;
     return ball;

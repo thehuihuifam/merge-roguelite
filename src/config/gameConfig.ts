@@ -19,6 +19,32 @@ export const OVERFLOW_GRACE_MS = 1000;
 /** Balls slower than this (px/step) count as "resting" for overflow purposes. */
 export const RESTING_SPEED_THRESHOLD = 0.6;
 
+/**
+ * Near-miss presentation (Task 2.1): red vignette fade and the heartbeat pulse
+ * that speeds up as a resting ball nears the danger line. Consumed by
+ * `src/render/NearMissVignetteRenderer.ts`.
+ */
+export const NEAR_MISS_FX = {
+  /** Ms for the vignette to fade in to the current severity. */
+  fadeInMs: 120,
+  /** Ms for the vignette to fade out after the near miss ends (GDD 3.3). */
+  fadeOutMs: 300,
+  /** Heartbeat period (ms) at severity 0 — calm. */
+  heartbeatPeriodAtSeverityZeroMs: 900,
+  /** Heartbeat period (ms) at severity 1 — touching the danger line. */
+  heartbeatPeriodAtSeverityOneMs: 450,
+  /** How far the heartbeat pushes the vignette brightness, 0..1. */
+  heartbeatPulseStrength: 0.35,
+  /** Width of one heartbeat bump, as a fraction of the cycle ("lub"). */
+  heartbeatBeatWidth: 0.1,
+  /** Phase of the softer echo beat ("dub"), 0..1. */
+  heartbeatEchoPhase: 0.22,
+  /** Echo beat strength relative to the main beat, 0..1. */
+  heartbeatEchoStrength: 0.55,
+  /** Strongest vignette alpha (severity 1 with the heartbeat at its peak). */
+  maxVignetteAlpha: 0.5,
+} as const;
+
 /** Delay after a drop before the next ball can be dropped. */
 export const DROP_COOLDOWN_MS = 550;
 
@@ -99,6 +125,36 @@ export const CARD_OVERLAY = {
 
 /** Score awarded when two max-tier balls merge and vanish. */
 export const MAX_TIER_MERGE_BONUS = 10000;
+
+/**
+ * Roguelite round structure (Task 2.2). Consumed by
+ * `src/systems/BasicRoundSystem.ts` and `src/systems/cards/RoundClearRewardCard.ts`.
+ */
+export const ROUNDS = {
+  /** Points to earn inside round 1 to clear it. */
+  firstTargetScore: 150,
+  /** Extra points required per subsequent round. */
+  targetScoreStep: 100,
+  /** Drops allotted to round 1 before the round is considered failed. */
+  firstDropBudget: 15,
+  /** Extra drops allotted per subsequent round. */
+  dropBudgetStep: 3,
+  /** Round-clear reward card bonus at round 1. */
+  rewardBaseScore: 50,
+  /** Reward card bonus growth per cleared round. */
+  rewardScorePerRound: 25,
+} as const;
+
+/**
+ * Special balls (Task 2.3). Spawn chance is rolled per dispenser ball;
+ * blast tuning is consumed by `src/systems/special/BombBallBehavior.ts`.
+ */
+export const SPECIAL_BALLS = {
+  /** Chance that a dispenser ball comes out as a bomb, 0..1. */
+  bombSpawnChance: 0.05,
+  /** Balls whose centre lies within this radius of a bomb are removed with it. */
+  bombBlastRadius: 90,
+} as const;
 
 /** Chain bonus: each consecutive merge within one drop adds this fraction to the multiplier. */
 export const CHAIN_MULTIPLIER_STEP = 0.5;

@@ -3,8 +3,16 @@ import { drawBalls } from '@/render/BallRenderer';
 import { drawCardOverlay } from '@/render/CardOverlayRenderer';
 import { drawDangerLine } from '@/render/DangerLineRenderer';
 import { drawGameOver, drawHeldBall, drawHud, drawIdle } from '@/render/HudRenderer';
+import { NearMissVignetteAnimator, drawNearMissVignette } from '@/render/NearMissVignetteRenderer';
 import { PALETTE } from '@/render/palette';
 import type { GameSnapshot } from '@/core/Game';
+
+/** Wall-clock source driving the vignette animation between frames. */
+export type Clock = () => number;
+
+function defaultClock(): number {
+  return performance.now();
+}
 
 /**
  * Renders a GameSnapshot to a 2D canvas. Keeps the logical board size fixed
@@ -12,14 +20,21 @@ import type { GameSnapshot } from '@/core/Game';
  */
 export class CanvasRenderer {
   private readonly ctx: CanvasRenderingContext2D;
+  private readonly vignette = new NearMissVignetteAnimator();
+  private readonly clock: Clock;
+  private lastFrameMs: number | null = null;
   private scale = 1;
 
-  constructor(private readonly canvas: HTMLCanvasElement) {
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    clock: Clock = defaultClock,
+  ) {
     const ctx = canvas.getContext('2d');
     if (ctx === null) {
       throw new Error('2D canvas context is not available');
     }
     this.ctx = ctx;
+    this.clock = clock;
     this.resize();
   }
 
@@ -76,6 +91,11 @@ export class CanvasRenderer {
     drawDangerLine(ctx, snapshot.dangerLineY, snapshot.nearMissIntensity);
     drawBalls(ctx, snapshot.balls);
     drawHeldBall(ctx, snapshot, SPAWN_Y);
+    const frameMs = this.clock();
+    const deltaMs = this.lastFrameMs === null ? 0 : Math.max(0, frameMs - this.lastFrameMs);
+    this.lastFrameMs = frameMs;
+    this.vignette.update(snapshot.nearMissIntensity, deltaMs, snapshot.state === 'game_over');
+    drawNearMissVignette(ctx, this.vignette.getAlpha(), this.vignette.getPulse());
     ctx.restore();
 
     if (snapshot.state === 'slowmo_select') {
