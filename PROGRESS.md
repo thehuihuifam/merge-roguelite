@@ -25,6 +25,14 @@ Active Next Action: Task 2.20 — 활성 점수 수정자의 읽기 전용 스�
 - 이번 세션에 `MergeCardContext.raiseSpawnTierFloor?`(Task 2.16) 확장과 HEAVY LOAD 리스크 카드(Task 2.18)가 추가되어 `docs/ARCHITECTURE.md` 확장 포인트 표와 `docs/GDD.md` 3.2 절, `CONTEXT.md` 상태 표를 함께 갱신했다.
 - 보충 태스크 2.35~2.39는 이번 세션의 스폰 압박(HEAVY LOAD)·HUD 흐름을 이어받되, 기존 2.20~2.34 및 서로와 중복되지 않는다.
 
+## UI·그래픽 대개편 세션 기록 (2026-09-25, 세션 A 1/4)
+
+- 이번 세션은 루프(태스크 1개) 모드가 아니라 사용자 지시로 시작한 UI·그래픽 대개편 4부작의 1단계다. Active Next Action(Task 2.20)과 백로그는 이 세션에서 다루지 않았다(무시 지시).
+- 커밋 1 `fix(cards)`: 카드 선택 무제한化 — `SLOW_MOTION.choiceTimeoutMs` 를 `null`(타입 `number | null`)로 바꾸고 `Game.tickSlowMotionSelection`·`CardSlowMotionSelector.onTimeout` 의 타이머 만료 로직을 완전히 비활성화했다. `slowmo_select` 는 플레이어가 고를 때까지 유지되고 배경 물리는 계속 진행된다. 오버레이 안내 문구를 "카드를 터치하세요 — 시간 제한 없음" 으로 교체. `durationMs: 400` 은 슬로우모션 시각 효과 시간으로 유지. docs/GDD.md 3.1·4절 갱신.
+- 커밋 2 `feat(render)`: WebGL 포스트프로세싱 파이프라인 — 씬을 오프스크린 캔버스에 그린 뒤 WebGL 텍스처로 업로드해 블룸·비네트·색수차·그레인 4효과를 '하나의' 프래그먼트 셰이더 패스(프레임당 draw 1회)로 합성한다. WebGL2 우선·WebGL1 폴백, 컨텍스트 실패 시 기존 Canvas 2D 직접 그리기 경로 유지(두 경로 공존). 소프트웨어 래스터라이저(SwiftShader/llvmpipe)는 `isSupported()` 에서 거부해 2D 경로를 쓴다. 비네트는 `nearMissIntensity` 에 연결, 색수차는 머지·폭발 이벤트에 스파이크. 튜닝은 `POST_FX` 블록. 헤드리스 Chromium(SwiftShader) 에서 4효과 픽셀 검증·방향 검증·에러 0 확인.
+- 커밋 3 `feat(design)`: 팔레트·디자인 토큰 전면 재작성 — `palette.ts` 를 역할 기반 토큰(`bg`/`text`/`accent`/카드/위험선/비네트 + 공 11티어 HSV 램프, hue 48°→288° 12° 스텝, S·V 단조 증가)으로 재정의하고 `gameConfig` 에 `DESIGN` 블록(타이포그래피·스페이싱·이징·그림자/글로우 프리셋)을 추가했다. `src/render/` 전체에서 하드코딩 색·폰트·여백을 토큰 참조로 교체, 고티어 공은 자체 발광(`DESIGN.glow`), 카드는 액센트 글로우. `tests/designTokens.test.ts` 12건(램프 정합성·WCAG 대비·토큰 스케일) 추가.
+- 검증: `npm run lint`·`npm run typecheck`·`npm test`(36 파일 284건)·`npm run build` 전부 통과. 실브라우저 측정: 2D 폴백 60.1fps(vsync), SwiftShader 강제 WebGL 경로 24.1fps(소프트웨어 렌더링 한계, 실제 GPU 에서는 단일 패스 <1ms 예상).
+- 다음 세션(B/C/D, 시작하지 않음): HUD 재설계 → 파티클 강화 → UI 애니메이션.
 
 ## Task Backlog
 

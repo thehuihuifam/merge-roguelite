@@ -47,7 +47,7 @@ export class CanvasRenderer {
 
   // FX state
   private flashRemainingMs = 0;
-  private flashColor = '#ffffff';
+  private flashColor: string = FX.flashColor;
   private flashAlpha: number = FX.flashAlpha;
   private shakeRemainingMs = 0;
   private shakeOffsetX = 0;
@@ -144,7 +144,7 @@ export class CanvasRenderer {
   }
 
   /** Trigger screen flash for big merges / bomb. */
-  triggerFlash(color: string = '#ffffff', alpha: number = FX.flashAlpha): void {
+  triggerFlash(color: string = FX.flashColor, alpha: number = FX.flashAlpha): void {
     this.flashRemainingMs = FX.flashDurationMs;
     this.flashColor = color;
     this.flashAlpha = alpha;
@@ -153,7 +153,7 @@ export class CanvasRenderer {
   /** Trigger flash based on tier (white for bomb/max, tier color otherwise). */
   triggerFlashForTier(tier: number | null): void {
     if (tier === null) {
-      this.triggerFlash('#ffffff', FX.flashAlpha);
+      this.triggerFlash(FX.flashColor, FX.flashAlpha);
       return;
     }
     if (tier >= FX.flashTierThreshold) {
@@ -227,7 +227,7 @@ export class CanvasRenderer {
     pruneBallFx(activeIds);
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = PALETTE.background;
+    ctx.fillStyle = PALETTE.bg.deep;
     ctx.fillRect(0, 0, cssWidth, cssHeight);
 
     const offsetX = (cssWidth - BOARD.width * this.scale) / 2;
@@ -239,9 +239,9 @@ export class CanvasRenderer {
       ctx.translate(this.shakeOffsetX, this.shakeOffsetY);
     }
 
-    ctx.fillStyle = PALETTE.board;
+    ctx.fillStyle = PALETTE.bg.board;
     ctx.fillRect(0, 0, BOARD.width, BOARD.height);
-    ctx.strokeStyle = PALETTE.boardBorder;
+    ctx.strokeStyle = PALETTE.bg.panel;
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, BOARD.width - 2, BOARD.height - 2);
 

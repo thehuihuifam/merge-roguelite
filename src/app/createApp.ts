@@ -7,6 +7,7 @@ import { SeededRandom, createSeed } from '@/core/rng/SeededRandom';
 import { TimeController } from '@/core/time/TimeController';
 import { PointerInput } from '@/input/PointerInput';
 import { CanvasRenderer } from '@/render/CanvasRenderer';
+import { PALETTE } from '@/render/palette';
 import { cardIndexAt } from '@/render/CardOverlayRenderer';
 import { triggerMergePop, triggerSquashStretch } from '@/render/BallRenderer';
 import { BasicParticleSystem } from '@/systems/BasicParticleSystem';
@@ -84,8 +85,14 @@ export function createApp(root: HTMLElement): App {
   const renderer = new CanvasRenderer(canvas, { particles });
   game.events.on('merge:resolved', (merge) => {
     const tier = merge.resultTier;
-    const color = tier === null ? '#ffe66d' : (getTierSpec(tier).color ?? BALL_TIERS[Math.min(tier, MAX_TIER)]?.color ?? '#ffffff');
-    const intensity = tier === null ? 1 : Math.min(1, 0.4 + tier / (MAX_TIER + 1) + merge.chainIndex * 0.15);
+    const color =
+      tier === null
+        ? PALETTE.bomb.spark
+        : (getTierSpec(tier).color ??
+          BALL_TIERS[Math.min(tier, MAX_TIER)]?.color ??
+          PALETTE.text.primary);
+    const intensity =
+      tier === null ? 1 : Math.min(1, 0.4 + tier / (MAX_TIER + 1) + merge.chainIndex * 0.15);
     particles.burst({
       kind: tier === null ? 'merge_max' : 'merge',
       position: merge.position,
@@ -93,7 +100,10 @@ export function createApp(root: HTMLElement): App {
       intensity,
     });
     if (tier === null) {
-      audio.play('merge_big', { pitch: frequencyForMergeTier(null, merge.chainIndex), volume: 0.9 });
+      audio.play('merge_big', {
+        pitch: frequencyForMergeTier(null, merge.chainIndex),
+        volume: 0.9,
+      });
     } else {
       audio.play('merge', { pitch: frequencyForMergeTier(tier, merge.chainIndex), volume: 0.7 });
     }
@@ -128,11 +138,11 @@ export function createApp(root: HTMLElement): App {
     particles.burst({
       kind: 'merge_max',
       position,
-      color: '#ffdd59',
+      color: PALETTE.bomb.ring,
       intensity: 1,
     });
     audio.play('merge_big', { pitch: frequencyForMergeTier(null, 0), volume: 1 });
-    renderer.triggerFlash('#ffffff', FX.flashAlpha);
+    renderer.triggerFlash(FX.flashColor, FX.flashAlpha);
     renderer.triggerShake(2.0);
     renderer.triggerChromaticAberration(POST_FX.chromaticAberration.detonationSpike);
   });
@@ -142,7 +152,7 @@ export function createApp(root: HTMLElement): App {
     particles.burst({
       kind: 'danger_spark',
       position,
-      color: '#ff4d6d',
+      color: PALETTE.accent.danger,
       intensity: sample.severity,
     });
     audio.play('near_miss_loop', { volume: 0.3 + sample.severity * 0.4 });
