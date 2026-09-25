@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Active Next Action: Task 2.17 — 스폰 페널티를 Game의 신규 공 발급에 연결
+Active Next Action: Task 2.18 — 큰 공 스폰 리스크 카드 추가
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
 - 마지막 갱신: 2026-09-25 — 백로그 보충 전용 루프, Task 2.15~2.34 제안 (기능 구현 없음)
@@ -166,10 +166,12 @@ Active Next Action: Task 2.17 — 스폰 페널티를 Game의 신규 공 발급�
   - `MergeCardContext.raiseSpawnTierFloor?(minTier, count)` 선택 필드 추가(기존 필드 무변경).
   - 테스트 추가: `tests/spawnTierPenalty.test.ts` 11건 — 기본 비활성, 하한 적용, 정확히 N회 만료, 하한 이상 티어 무소비, 중첩 최댓값(하한·횟수), 중첩 결합 상태 4회, reset, 유효하지 않은 티어/횟수/apply 인자 거부, 커스텀 스폰 범위.
 
-- [ ] **Task 2.17: 스폰 페널티를 Game의 신규 공 발급에 연결**
+- [x] **Task 2.17: 스폰 페널티를 Game의 신규 공 발급에 연결**
   - 선행: Task 2.16. 기존 수정: `src/core/Game.ts`. 신규: `tests/gameSpawnPenalty.test.ts`.
   - 확장 방식: Game이 상태 객체를 소유하고 카드 컨텍스트 콜백을 구현한다. 선택 당시 이미 보이는 held/NEXT는 변경하지 않고 이후 신규 발급 때만 하한을 적용한다. 폭탄 여부 난수와 발급 순서는 유지하고 재시작 시 reset한다.
   - 완료 기준: 테스트 카드 적용 후 기존 NEXT 유지, 다음 N회 신규 발급 하한 보장, 이후 정상 복귀, 재시작 해제 통합 테스트 통과. UI/덱 변경은 제외, 10분.
+  - 실제 구현: `Game`이 `SpawnTierPenalty`를 소유하고 `buildCardContext`에 `raiseSpawnTierFloor` 콜백을 채워 준다. `drop()`의 신규 NEXT 발급만 `spawnPenalty.apply(roll)`을 거친다(선택 당시 보이는 held/기존 NEXT 불변, 폭탄 난수 `rollSpawnSpecial` 순서 유지). `resetRun`에서 `spawnPenalty.reset()`으로 재시작 해제.
+  - 테스트 추가: `tests/gameSpawnPenalty.test.ts` 4건 — 카드 적용 시 held/NEXT 미변경, floor(4,3) 적용 후 정확히 3회 발급이 티어 4로 고정되고 만료 뒤 페널티 없는 시드 게임과 롤이 정확히 일치, floor 활성 중에도 특수 공 롤(확률 1) 유지, 게임 오버 → 재시작 뒤 페널티 없는 롤 시퀀스와 일치(재시작 해제).
 
 - [ ] **Task 2.18: 큰 공 스폰 리스크 카드 추가**
   - 선행: Task 2.17. 신규: `src/systems/cards/SpawnLargerBallsCard.ts`, `tests/spawnLargerBallsCard.test.ts`. 기존 수정: `src/systems/cards/BasicMergeCardProvider.ts`, `src/config/gameConfig.ts`, `tests/basicMergeCardProvider.test.ts`.

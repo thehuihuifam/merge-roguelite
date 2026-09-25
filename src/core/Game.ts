@@ -9,6 +9,7 @@ import {
 } from '@/config/gameConfig';
 import { BallFactory, getTierSpec } from '@/core/ball/BallFactory';
 import { BallRegistry } from '@/core/ball/BallRegistry';
+import { SpawnTierPenalty } from '@/core/ball/SpawnTierPenalty';
 import { OverflowDetector } from '@/core/danger/OverflowDetector';
 import { EventBus } from '@/core/events/EventBus';
 import { MergeResolver } from '@/core/merge/MergeResolver';
@@ -121,6 +122,9 @@ export class Game {
   private readonly merges = new MergeResolver();
   private readonly registry = new BallRegistry();
   private readonly fsm = new GameStateMachine();
+  // Spawn-tier floor demanded by `spawn_larger_balls` risk cards (Task 2.17).
+  // Pure state; Game consumes it on every new dispenser issuance.
+  private readonly spawnPenalty = new SpawnTierPenalty();
 
   private rng = new SeededRandom(1);
   private factory = new BallFactory(this.rng);
@@ -215,7 +219,10 @@ export class Game {
     this.cooldownMs = DROP_COOLDOWN_MS;
     this.heldTier = this.nextTier;
     this.heldSpecial = this.nextSpecial;
-    this.nextTier = this.factory.rollSpawnTier();
+    // Issuance (Task 2.17): the freshly rolled NEXT passes through the spawn
+    // penalty, while the ball the player currently sees (held/old NEXT) is
+    // untouched. Special rolls keep their order — only the tier may be lifted.
+    this.nextTier = this.spawnPenalty.apply(this.factory.rollSpawnTier());
     this.nextSpecial = this.factory.rollSpawnSpecial();
     this.aimX = this.clampAimX(this.aimX, this.heldTier);
     this.fsm.send('drop');
@@ -340,6 +347,7 @@ export class Game {
     this.seed = seed >>> 0;
     this.rng = new SeededRandom(this.seed);
     this.factory = new BallFactory(this.rng, SPAWNABLE_TIER_COUNT, this.specialSpawnChance);
+    this.spawnPenalty.reset();
     this.registry.clear();
     this.physics.clearBalls();
     this.overflow.reset();
@@ -382,6 +390,9 @@ export class Game {
       },
       shiftDangerLine: (deltaY: number): void => {
         this.overflow.shiftDangerLine(deltaY);
+      },
+      raiseSpawnTierFloor: (minTier: number, count: number): void => {
+        this.spawnPenalty.raise(minTier, count);
       },
     };
   }
