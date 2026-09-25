@@ -113,9 +113,10 @@ const CAPTION_FONT_FRAGMENT = `${DESIGN.fontSize.caption}px`;
 describe('HUD information hierarchy', () => {
   it('draws SCORE as the single primary element: top centre, display size, brightest', () => {
     const { ctx, calls } = createStubContext();
-    drawHud(ctx, { ...baseSnapshot(), score: 1234 }, staticProgression(false));
+    // A short score: no shrink, no slide — dead centre at the display size.
+    drawHud(ctx, { ...baseSnapshot(), score: 42 }, staticProgression(false));
 
-    const score = callFor(calls, '1,234');
+    const score = callFor(calls, '42');
     expect(score.font).toBe(DISPLAY_FONT);
     expect(score.align).toBe('center');
     expect(score.x).toBe(BOARD.width / 2);

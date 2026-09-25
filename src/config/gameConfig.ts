@@ -286,10 +286,25 @@ export const SPAWN_PENALTY_HUD = {
 export const HUD_LAYOUT = {
   /** Shared left/right gutter for the corner blocks, board units. */
   margin: DESIGN.space.lg,
-  /** Primary: current score — top centre, `fontSize.display`. */
+  /**
+   * Primary: current score — top centre, `fontSize.display`. Long scores
+   * shrink the font (4 digits → start, 8 digits → floor) and the block then
+   * slides left just enough to keep clear of the NEXT preview ball, so the
+   * two can never overlap no matter how big the score gets.
+   */
   score: {
     labelY: DESIGN.space.sm,
     valueY: DESIGN.space.sm + DESIGN.fontSize.caption + DESIGN.space.xs,
+    /** Score value font while it fits (below `shrinkThresholdDigits`). */
+    maxFontSize: DESIGN.fontSize.display,
+    /** Score value font floor — pinned from `minFontSizeDigits` upward. */
+    minFontSize: 24,
+    /** Digit count where the value font starts shrinking. */
+    shrinkThresholdDigits: 4,
+    /** Digit count at/above which the value font stays at `minFontSize`. */
+    minFontSizeDigits: 8,
+    /** Clear space kept between the score's right edge and the NEXT ball. */
+    minGapToNext: 8,
   },
   /** Secondary: best score — top-left corner, `fontSize.caption`. */
   best: {
