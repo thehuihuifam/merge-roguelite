@@ -1,5 +1,6 @@
 import { BOARD, SPAWN_Y } from '@/config/gameConfig';
 import { drawBalls } from '@/render/BallRenderer';
+import { drawCardOverlay } from '@/render/CardOverlayRenderer';
 import { drawDangerLine } from '@/render/DangerLineRenderer';
 import { drawGameOver, drawHeldBall, drawHud, drawIdle } from '@/render/HudRenderer';
 import { PALETTE } from '@/render/palette';
@@ -40,6 +41,13 @@ export class CanvasRenderer {
     return (clientX - rect.left - offsetX) / this.scale;
   }
 
+  /** Converts a client-space point into board coordinates. */
+  toBoardY(clientY: number): number {
+    const rect = this.canvas.getBoundingClientRect();
+    const offsetY = (rect.height - BOARD.height * this.scale) / 2;
+    return (clientY - rect.top - offsetY) / this.scale;
+  }
+
   render(snapshot: GameSnapshot): void {
     const ctx = this.ctx;
     const dpr = window.devicePixelRatio || 1;
@@ -69,6 +77,10 @@ export class CanvasRenderer {
     drawBalls(ctx, snapshot.balls);
     drawHeldBall(ctx, snapshot, SPAWN_Y);
     ctx.restore();
+
+    if (snapshot.state === 'slowmo_select') {
+      drawCardOverlay(ctx, snapshot.pendingCards);
+    }
 
     drawHud(ctx, snapshot);
 

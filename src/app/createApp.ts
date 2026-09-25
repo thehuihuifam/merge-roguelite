@@ -1,10 +1,13 @@
 import { GameLoop } from '@/app/GameLoop';
 import { Game } from '@/core/Game';
-import { createSeed } from '@/core/rng/SeededRandom';
+import { SeededRandom, createSeed } from '@/core/rng/SeededRandom';
 import { TimeController } from '@/core/time/TimeController';
 import { PointerInput } from '@/input/PointerInput';
 import { CanvasRenderer } from '@/render/CanvasRenderer';
+import { cardIndexAt } from '@/render/CardOverlayRenderer';
+import { CardSlowMotionSelector } from '@/systems/CardSlowMotionSelector';
 import { SlowMotionNearMissEffect } from '@/systems/SlowMotionNearMissEffect';
+import { BasicMergeCardProvider } from '@/systems/cards/BasicMergeCardProvider';
 
 export interface App {
   readonly game: Game;
@@ -20,9 +23,18 @@ export function createApp(root: HTMLElement): App {
   root.appendChild(canvas);
 
   const time = new TimeController();
+  // Card draws run on their own seeded stream, reseeded per run so that the
+  // same run seed always offers the same hands.
+  const cardRandom = new SeededRandom(createSeed());
+  const cardProvider = new BasicMergeCardProvider(cardRandom);
+  const slowMotionSelector = new CardSlowMotionSelector(cardProvider);
   const game = new Game({
     timeController: time,
     nearMissEffect: new SlowMotionNearMissEffect(time),
+    slowMotionSelector,
+  });
+  game.events.on('run:started', ({ seed }) => {
+    cardRandom.reseed(seed);
   });
   const renderer = new CanvasRenderer(canvas);
   let lastAimX = Number.NaN;
@@ -41,10 +53,29 @@ export function createApp(root: HTMLElement): App {
         beginRun();
         return;
       }
+      // While the card overlay is up, a release belongs to the cards, not the board.
+      if (game.state === 'slowmo_select') {
+        return;
+      }
       if (Number.isFinite(clientX)) {
         game.setAimX(renderer.toBoardX(clientX));
       }
       game.drop();
+    },
+    onSelect: (clientX: number, clientY: number): void => {
+      if (game.state !== 'slowmo_select') {
+        return;
+      }
+      const cards = game.getSnapshot().pendingCards;
+      const index = cardIndexAt(cards, renderer.toBoardX(clientX), renderer.toBoardY(clientY));
+      if (index === null) {
+        return;
+      }
+      const card = cards[index];
+      if (card === undefined) {
+        return;
+      }
+      game.chooseCard(card);
     },
     onRestart: (): void => {
       if (game.state === 'game_over' || game.state === 'idle') {

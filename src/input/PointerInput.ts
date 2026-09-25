@@ -1,6 +1,8 @@
 export interface PointerInputHandlers {
   readonly onAim: (clientX: number) => void;
   readonly onDrop: (clientX: number) => void;
+  /** Pointer release in board coordinates; used to pick a merge card. */
+  readonly onSelect: (clientX: number, clientY: number) => void;
   readonly onRestart: () => void;
   readonly onNudge: (deltaX: number) => void;
 }
@@ -33,6 +35,7 @@ export class PointerInput {
       }
       this.pointerDown = false;
       this.handlers.onAim(event.clientX);
+      this.handlers.onSelect(event.clientX, event.clientY);
       this.handlers.onDrop(event.clientX);
     });
     this.listen(this.target, 'pointercancel', () => {
