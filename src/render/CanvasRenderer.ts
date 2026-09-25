@@ -4,6 +4,12 @@ import { drawBalls, pruneBallFx, triggerMergePop, updateBallFx } from '@/render/
 import { drawCardOverlay } from '@/render/CardOverlayRenderer';
 import { drawDangerLine } from '@/render/DangerLineRenderer';
 import {
+  RoundGaugeAnimator,
+  drawDangerTint,
+  drawRoundProgressGauge,
+  roundProgressOf,
+} from '@/render/DiegeticBoardRenderer';
+import {
   HudProgressionAnimator,
   drawGameOver,
   drawHeldBall,
@@ -47,6 +53,7 @@ export class CanvasRenderer {
   private readonly offscreen: HTMLCanvasElement | null;
   private readonly vignette = new NearMissVignetteAnimator();
   private readonly hudProgression = new HudProgressionAnimator();
+  private readonly roundGauge = new RoundGaugeAnimator();
   private readonly clock: Clock;
   private readonly particles: IParticleSystem | undefined;
   private lastFrameMs: number | null = null;
@@ -231,6 +238,8 @@ export class CanvasRenderer {
 
     this.updateFx(deltaMs);
     this.hudProgression.update(snapshot, deltaMs);
+    const roundProgress = roundProgressOf(snapshot);
+    this.roundGauge.update(roundProgress, deltaMs);
     const activeIds = new Set<number>(snapshot.balls.map((b) => b.id));
     pruneBallFx(activeIds);
 
@@ -257,6 +266,9 @@ export class CanvasRenderer {
     ctx.beginPath();
     ctx.rect(0, 0, BOARD.width, BOARD.height);
     ctx.clip();
+    // Diegetic danger blush: the board background itself reacts before any
+    // chrome does (session B, Task 2).
+    drawDangerTint(ctx, snapshot.nearMissIntensity);
     drawDangerLine(ctx, snapshot.dangerLineY, snapshot.nearMissIntensity);
     drawBalls(ctx, snapshot.balls);
     if (this.particles !== undefined) {
@@ -265,6 +277,8 @@ export class CanvasRenderer {
     drawHeldBall(ctx, snapshot, SPAWN_Y);
     this.vignette.update(snapshot.nearMissIntensity, deltaMs, snapshot.state === 'game_over');
     drawNearMissVignette(ctx, this.vignette.getAlpha(), this.vignette.getPulse());
+    // Diegetic round progress: a hairline gauge embedded in the bottom frame.
+    drawRoundProgressGauge(ctx, roundProgress, this.roundGauge.glow);
 
     if (this.flashRemainingMs > 0) {
       const alpha = (this.flashRemainingMs / FX.flashDurationMs) * this.flashAlpha;

@@ -279,14 +279,20 @@ export const HUD_LAYOUT = {
     labelY: DESIGN.space.sm,
     valueY: DESIGN.space.sm + DESIGN.fontSize.caption + DESIGN.space.xs,
   },
-  /** Secondary: next-ball preview — top-right corner, caption label. */
+  /**
+   * Secondary: next-ball preview — diegetic placement (session B, Task 2):
+   * beside the actual spawn point (board top centre, `SPAWN_Y`) instead of a
+   * fixed screen corner, so the player reads it together with the aim guide.
+   */
   next: {
-    labelY: DESIGN.space.sm,
-    /** Preview centre, board units. */
-    previewX: BOARD.width - DESIGN.space.lg - 20,
-    previewY: 48,
+    /** Horizontal offset of the preview centre from the spawn column. */
+    offsetX: 56,
+    /** Preview centre height — the spawn height. */
+    previewY: SPAWN_Y,
     /** Preview balls are scaled down to at most this radius. */
     previewRadius: 18,
+    /** Caption label sits this far under the preview ball. */
+    labelGap: DESIGN.space.xs,
   },
   /** Tertiary: round block — left column below BEST. */
   round: {
@@ -316,6 +322,29 @@ export const HUD_LAYOUT = {
       DESIGN.space.xs +
       DESIGN.fontSize.display +
       DESIGN.space.sm,
+  },
+  /**
+   * Diegetic round-progress gauge (session B, Task 2): a thin strip embedded
+   * in the board's bottom frame that fills with the round's score progress.
+   */
+  roundGauge: {
+    /** Gauge thickness, board units — a hairline in the frame, not a bar. */
+    thickness: 4,
+    /** Brief glow when the gauge reaches 100%, ms. */
+    glowMs: 600,
+    /** Peak glow radius (shadowBlur) at the moment of completion. */
+    glowBlur: DESIGN.glow.medium,
+  },
+  /**
+   * Diegetic danger tint (session B, Task 2): the board background itself
+   * blushes red when a ball rests close to the danger line. Driven by the
+   * existing `nearMissIntensity` (0 at the warning-zone floor, 1 at the line).
+   */
+  dangerTint: {
+    /** Tint starts once a ball is within this distance of the danger line. */
+    thresholdPx: 30,
+    /** Strongest tint alpha — subtle, the vignette carries the real alarm. */
+    maxAlpha: 0.1,
   },
 } as const;
 

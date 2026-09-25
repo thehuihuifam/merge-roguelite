@@ -125,7 +125,7 @@ describe('HUD information hierarchy', () => {
     expect(calls.filter((call) => call.font === DISPLAY_FONT)).toHaveLength(1);
   });
 
-  it('draws BEST and NEXT as small caption-scale corner blocks', () => {
+  it('draws BEST and NEXT as small caption-scale secondary blocks', () => {
     const { ctx, calls } = createStubContext();
     drawHud(ctx, { ...baseSnapshot(), best: 900 }, staticProgression(false));
 
@@ -138,9 +138,11 @@ describe('HUD information hierarchy', () => {
     expect(bestValue.font).toContain(CAPTION_FONT_FRAGMENT);
     expect(bestValue.x).toBe(HUD_LAYOUT.margin);
 
+    // NEXT lives beside the spawn point (diegetic, session B Task 2).
     const nextLabel = callFor(calls, TEXT.nextLabel);
     expect(nextLabel.font).toContain(CAPTION_FONT_FRAGMENT);
-    expect(nextLabel.align).toBe('right');
+    expect(nextLabel.align).toBe('center');
+    expect(nextLabel.x).toBe(BOARD.width / 2 + HUD_LAYOUT.next.offsetX);
   });
 
   it('shows the SLOW badge only while time is slowed', () => {

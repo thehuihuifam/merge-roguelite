@@ -61,7 +61,8 @@ function advanceFallbackProgression(snapshot: GameSnapshot): HudProgression {
  * Draws the in-run HUD in three tiers of attention (session B redesign):
  *
  * 1. primary   — SCORE: top centre, display size, brightest text on screen.
- * 2. secondary — BEST (top-left) and NEXT (top-right): caption size, corners.
+ * 2. secondary — BEST (top-left corner) and NEXT (diegetic: beside the spawn
+ *    point): caption size, out of the player's central focus.
  * 3. tertiary  — conditional: the round block is emphasized for
  *    `HUD_LAYOUT.round.emphasisMs` after a round starts and stays as a quiet
  *    compact readout afterwards; the drops-left warning appears only when the
@@ -108,14 +109,7 @@ export function drawHud(
   ctx.fillText(snapshot.best.toLocaleString('ko-KR'), HUD_LAYOUT.margin, HUD_LAYOUT.best.valueY);
   ctx.restore();
 
-  // ── Secondary: NEXT, top-right corner, caption label + mini preview. ──
-  ctx.save();
-  ctx.textBaseline = 'top';
-  ctx.textAlign = 'right';
-  ctx.fillStyle = PALETTE.text.secondary;
-  ctx.font = `${medium} ${caption}px ${FONT}`;
-  ctx.fillText(TEXT.nextLabel, BOARD.width - HUD_LAYOUT.margin, HUD_LAYOUT.next.labelY);
-  ctx.restore();
+  // ── Secondary: NEXT, diegetic — beside the actual spawn point. ──
   drawNextPreview(ctx, snapshot);
 
   // ── Tertiary: only what matters right now. ──
@@ -137,13 +131,29 @@ export function drawHud(
   }
 }
 
+/**
+ * Diegetic NEXT preview (session B, Task 2): the mini ball floats right next
+ * to the spawn point at the top-centre column — where the held ball and the
+ * aim guide already live — with its caption label just under it, so "what
+ * comes next" is read in the same glance as "where I am aiming".
+ */
 function drawNextPreview(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): void {
+  const { offsetX, previewY, previewRadius, labelGap } = HUD_LAYOUT.next;
+  const centerX = BOARD.width / 2 + offsetX;
   const nextSpec = getTierSpec(snapshot.nextTier);
-  const previewScale = Math.min(1, HUD_LAYOUT.next.previewRadius / nextSpec.radius);
+  const previewScale = Math.min(1, previewRadius / nextSpec.radius);
   ctx.save();
-  ctx.translate(HUD_LAYOUT.next.previewX, HUD_LAYOUT.next.previewY);
+  ctx.translate(centerX, previewY);
   ctx.scale(previewScale, previewScale);
   drawBallShape(ctx, 0, 0, snapshot.nextTier, 1, snapshot.nextSpecial);
+  ctx.restore();
+
+  ctx.save();
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = PALETTE.text.secondary;
+  ctx.font = `${DESIGN.fontWeight.medium} ${DESIGN.fontSize.caption}px ${FONT}`;
+  ctx.fillText(TEXT.nextLabel, centerX, previewY + previewRadius + labelGap);
   ctx.restore();
 }
 
