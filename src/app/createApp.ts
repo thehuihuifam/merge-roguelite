@@ -6,6 +6,8 @@ import { PointerInput } from '@/input/PointerInput';
 import { CanvasRenderer } from '@/render/CanvasRenderer';
 import { cardIndexAt } from '@/render/CardOverlayRenderer';
 import { BasicRoundSystem } from '@/systems/BasicRoundSystem';
+import { BombBallBehavior } from '@/systems/special/BombBallBehavior';
+import { SpecialBallRegistry } from '@/systems/special/SpecialBallRegistry';
 import { CardSlowMotionSelector } from '@/systems/CardSlowMotionSelector';
 import { RoundRunner } from '@/systems/RoundRunner';
 import { SlowMotionNearMissEffect } from '@/systems/SlowMotionNearMissEffect';
@@ -33,11 +35,16 @@ export function createApp(root: HTMLElement): App {
   const cardRandom = new SeededRandom(createSeed());
   const cardProvider = new BasicMergeCardProvider(cardRandom);
   const slowMotionSelector = new CardSlowMotionSelector(cardProvider);
+  // Special balls (Task 2.3): register after construction so behaviors can
+  // announce their life-cycle on the game's event bus.
+  const specialBalls = new SpecialBallRegistry();
   const game = new Game({
     timeController: time,
     nearMissEffect: new SlowMotionNearMissEffect(time),
     slowMotionSelector,
+    specialBalls,
   });
+  specialBalls.register(new BombBallBehavior(game.events));
   game.events.on('run:started', ({ seed }) => {
     cardRandom.reseed(seed);
   });

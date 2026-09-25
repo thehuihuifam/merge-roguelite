@@ -145,6 +145,17 @@ export const ROUNDS = {
   rewardScorePerRound: 25,
 } as const;
 
+/**
+ * Special balls (Task 2.3). Spawn chance is rolled per dispenser ball;
+ * blast tuning is consumed by `src/systems/special/BombBallBehavior.ts`.
+ */
+export const SPECIAL_BALLS = {
+  /** Chance that a dispenser ball comes out as a bomb, 0..1. */
+  bombSpawnChance: 0.05,
+  /** Balls whose centre lies within this radius of a bomb are removed with it. */
+  bombBlastRadius: 90,
+} as const;
+
 /** Chain bonus: each consecutive merge within one drop adds this fraction to the multiplier. */
 export const CHAIN_MULTIPLIER_STEP = 0.5;
 

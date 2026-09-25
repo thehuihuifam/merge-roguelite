@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.3
+Active Next Action: Task 2.4
 
 - 버전: v0.1.0 (MVP 베이스라인)
-- 마지막 갱신: Task 2.2 완료 — 라운드별 목표 점수와 드롭 예산, 클리어 카드 보상
+- 마지막 갱신: Task 2.3 완료 — 폭탄 특수 공(첫 충돌 시 인접 공 제거)과 스폰 확률 설정
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -70,7 +70,13 @@ Active Next Action: Task 2.3
   - `Game.applyRewardCard(card)` 메서드 추가 — `chooseCard` 와 같은 카드 컨텍스트(`buildCardContext` 로 추출)를 쓰고, idle/game_over 에서는 거부한다. `createApp.ts` 에 `BasicRoundSystem` + `RoundRunner` 연결(해제는 `dispose`).
   - 테스트 추가: `tests/basicRoundSystem.test.ts` 7건(목표/예산 증가, 라운드 스코프 진행도, 점수 차감 시 클리어 해제, 예산 소진, advance/reset), `tests/roundRunner.test.ts` 8건(보상 카드 수치·적용, 클리어→보상→다음 라운드, 예산 소진 시 무보상 스킵, 이미 클리어된 라운드 보호, run:started 리셋, dispose 후 무반응, 실제 Game 통합 — 보상 재진입 가드 검증), `tests/game.test.ts` 2건(`applyRewardCard` 승인/거부).
   - 미연결: 라운드/목표/예산 HUD 표시는 Task 2.12, 보상을 자동 지급 대신 카드 선택지로 주는 것은 Task 2.13 로 백로그 추가.
-- [ ] Task 2.3: `ISpecialBall` 폭탄 공 (인접 공 제거) 구현과 스폰 확률 설정
+- [x] **Task 2.3: `ISpecialBall` 폭탄 공 (인접 공 제거) 구현과 스폰 확률 설정**
+  - 실제 구현: `src/systems/special/BombBallBehavior.ts` — `ISpecialBallBehavior` 구현(kind `bomb`). 머지하지 않고(`canMergeWith` → false) 첫 충돌에 폭발한다. `blastRadius` 필드를 `ISpecialBallBehavior` 에 추가(기존 메서드 무변경)해 호스트(Game)가 폭발을 실행하고, 생명주기 훅은 `bomb:spawned`/`bomb:contact` 이벤트를 발화한다. `onMerged` 는 불변식 가드(폭탄은 병합될 수 없다).
+  - `src/systems/special/SpecialBallRegistry.ts` — `ISpecialBallRegistry` 구현. `createApp` 에서 `Game` 생성 후 폭탄 행동을 등록해 이벤트 버스를 주입할 수 있게 했다.
+  - 폭발 대상은 순수 함수 `blastVictims(bomb, balls, radius, contact)`: 자신 + 닿은 공(반경 밖이어도 무조건) + 중심 기준 반경 90px(`SPECIAL_BALLS.bombBlastRadius`) 안의 공. `Game.resolveMerges` 가 머지 규칙 앞단에서 특수 공 쌍을 먼저 소비해 폭탄이 머지로 새지 않는다.
+  - 스폰 확률: `SPECIAL_BALLS.bombSpawnChance`(= 0.05)를 `BallFactory.rollSpawnSpecial()` 이 매 드롭에 굴린다. `Game` 에 `specialBalls`/`specialSpawnChance` 의존 선택 필드를 추가해 테스트가 확률 0/1로 고정할 수 있다. `Ball.special` 필드(선택)와 `HeldBall.special`/`GameSnapshot.nextSpecial`로 홀드·NEXT 미리보기까지 폭탄 표시(황색 테두리 + `✹`)가 붙는다.
+  - 이벤트 추가: `bomb:spawned`, `bomb:contact`, `ball:detonated`(제거된 id 일괄 포함).
+  - 테스트 추가: `tests/specialBalls.test.ts` 11건 — 행동/불변식/반경 검증, `blastVictims` 순수 로직 3건(반경 내 제거·접촉 공 강제 포함·스택 정리), 레지스트리 교체, 실제 Game 통합 4건(확률 1 폭탄 발급·이벤트, 확률 0 일반 공, 홀로 앉은 폭탄 미폭발, 첫 충돌 폭발로 보드 정리), `tests/ballFactory.test.ts` 3건(스폰 확률 경계·예외·특수 태그).
 - [ ] Task 2.4: `ISaveSystem` localStorage 구현 (베스트 점수, 총 런 수)
 - [ ] Task 2.5: `IParticleSystem` 머지 파티클 버스트
 - [ ] Task 2.6: `IAudioSystem` WebAudio 기반 효과음 (merge 피치는 티어에 비례)
@@ -81,6 +87,7 @@ Active Next Action: Task 2.3
 - [ ] Task 2.11: 카드 선택 키보드 지원(1/2/3 키) — 지금은 포인터 `onSelect` 만 연결돼 있어 키보드 플레이어는 타임아웃에만 의존한다(Task 1.4 에서 발견). `PointerInput` 의 keydown 스위치에 숫자 키를 추가하고 `createApp.ts` 에서 인덱스 → `game.chooseCard` 로 연결.
 - [ ] Task 2.12: 라운드 HUD 표시(라운드 번호 · 목표 진행도 · 남은 드롭) — 지금은 라운드 진행이 테스트로만 관찰되고 화면에 나오지 않는다(Task 2.2 에서 발견). `GameSnapshot` 확장 여부와 함께 착수 시 세부 스펙을 먼저 쪼갠다.
 - [ ] Task 2.13: 라운드 클리어 보상을 자동 지급 대신 카드 선택지로 — 지금은 `RoundRunner` 가 `createRoundClearRewardCard` 를 즉시 apply 해 버려 플레이어의 선택이 없다(Task 2.2 에서 발견). 슬로우모션 카드 선택 플로우 재활용을 검토한다.
+- [ ] Task 2.14: 폭탄 폭발 득점 보상 설계 — 지금은 제거만 하고 점수가 없어, 큰 공을 지울수록 손해로 느껴질 수 있다(Task 2.3 에서 발견). 제거된 공 값의 일정 비율 지급 등을 GDD 와 함께 결정한다.
 
 ### Infra
 

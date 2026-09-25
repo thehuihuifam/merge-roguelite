@@ -1,3 +1,5 @@
+import type { SpecialBallKind } from '@/core/interfaces/ISpecialBall';
+
 export type BallId = number;
 
 export interface Vec2 {
@@ -19,6 +21,8 @@ export interface Ball {
   velocity: Vec2;
   /** Wall-clock (game time) at which the ball entered the world, in ms. */
   readonly spawnedAt: number;
+  /** Special kind (bomb, ...); absent for ordinary balls. */
+  readonly special?: SpecialBallKind;
 }
 
 export interface CollisionPair {

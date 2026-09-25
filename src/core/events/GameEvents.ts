@@ -1,4 +1,4 @@
-import type { Ball, MergeEvent, NearMissSample } from '@/core/types';
+import type { Ball, BallId, MergeEvent, NearMissSample, Vec2 } from '@/core/types';
 import type { GameState } from '@/core/state/GameState';
 
 export interface GameEventMap {
@@ -8,6 +8,9 @@ export interface GameEventMap {
   'ball:spawned': { ball: Ball };
   'ball:dropped': { ball: Ball };
   'merge:resolved': MergeEvent;
+  'bomb:spawned': { bomb: Ball };
+  'bomb:contact': { bomb: Ball; other: Ball };
+  'ball:detonated': { bombId: BallId; removedIds: readonly BallId[]; position: Vec2 };
   'score:changed': { score: number; best: number; delta: number };
   'danger:nearMissEnter': NearMissSample;
   'danger:nearMissUpdate': NearMissSample;
