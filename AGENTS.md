@@ -96,8 +96,13 @@
 ## 4. 에이전트 행동 수칙
 
 1. **세션 시작 시 반드시 다음 순서로 읽는다:** `CONTEXT.md` → `docs/GDD.md` → `docs/ARCHITECTURE.md` → `PROGRESS.md`.
-2. **1회 세션에서는 PROGRESS.md 의 태스크 1개만 수행한다.** `Active Next Action` 이 가리키는 태스크다. 옆 태스크가 쉬워 보여도 손대지 않는다.
-3. **main 브랜치에 직접 커밋하지 않는다.** 브랜치명은 `feat/task-X.Y-요약` (예: `feat/task-1.1-slowmo-config`). 버그 수정은 `fix/task-X.Y-요약`.
+2. **1회 세션에서는 PROGRESS.md 의 태스크 1개만 수행하는 것이 기본값이다.** Active Next Action 이 가리키는 태스크다. 옆 태스크가 쉬워 보여도 손대지 않는다.
+
+   단, 사용자가 세션 시작 시 "이번 세션은 N개 태스크를 연속 수행하라"고 명시적으로 지시하면 그 N개를 순서대로 수행한다. 이 경우 AGENTS.md 4.2 의 기본값은 이번 세션에 한해 예외 적용된다.
+3. **main 브랜치에 직접 커밋하지 않는다.** 브랜치명은 다음과 같이 정한다.
+
+   - 태스크 1개를 수행하는 세션: `feat/task-X.Y-요약` (예: `feat/task-1.1-slowmo-config`). 버그 수정은 `fix/task-X.Y-요약`.
+   - 태스크 N개(2개 이상)를 수행하는 세션: `feat/batch-<세션번호>-<요약>` (예: `feat/batch-01-v0.3.0-tasks`). 세션번호는 01 부터 시작하여 매 배치 세션마다 1씩 증가한다.
 4. 작업 전 `npm ci` 로 의존성을 맞추고, 작업 후 `npm run lint && npm run typecheck && npm test` 를 로컬에서 통과시킨다.
 5. **작업 완료 시 PROGRESS.md 를 갱신한다:** 해당 태스크의 `- [ ]` 를 `- [x]` 로 바꾸고, 맨 위 `Active Next Action: Task X.Y` 를 다음 태스크로 갱신한다. 새로 발견한 후속 작업은 백로그 끝에 새 태스크로 추가한다(기존 번호는 바꾸지 않는다).
 6. **소스 코드 변경과 PROGRESS.md 갱신을 하나의 PR 로 묶어서 제출한다.** PR 본문은 `.github/pull_request_template.md` 체크리스트를 채운다.
