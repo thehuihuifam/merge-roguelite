@@ -332,6 +332,8 @@ export const HUD_LAYOUT = {
     emphasizedY: 44,
     /** Target-progress line under the emphasized readout. */
     progressY: 64,
+    /** Low-drops warning line while the round block is emphasized. */
+    emphasizedDropsY: 80,
     /** Compact round label (caption) after the emphasis window. */
     quietY: 44,
     /** Target-progress line while quiet. */
@@ -340,7 +342,11 @@ export const HUD_LAYOUT = {
     dropsY: 72,
     /** How long a round's readout stays emphasized after it starts, ms. */
     emphasisMs: 3000,
-    /** Drops left at or below this count switch to the warning emphasis. */
+    /**
+     * The drops-left line is drawn only while `dropBudget - dropsUsed` is at
+     * or below this count — in every phase, including the round-start
+     * emphasis window. Above it the drops text is never drawn at all.
+     */
     lowDropsThreshold: 5,
     /** Slight scale-up applied to the low-drops warning line. */
     lowDropsScale: 1.1,
@@ -533,8 +539,6 @@ export const TEXT = {
   startHint: '클릭/터치로 시작',
   // Dynamic templates — functions return Korean strings
   slowMotionBadgeDynamic: (scaleText: string): string => `슬로우 ×${scaleText}`,
-  roundStatus: (index: number, dropsLeft: number): string =>
-    `라운드 ${index} · ${dropsLeft}개 남음`,
   /** Quiet-mode round label (session B hierarchy): the round number alone. */
   roundIndexLabel: (index: number): string => `라운드 ${index}`,
   /** Low-drops warning line (session B hierarchy). */

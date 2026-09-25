@@ -177,10 +177,13 @@ describe('HUD progressive disclosure', () => {
     expect(animator.roundEmphasized).toBe(true);
     const loud = createStubContext();
     drawHud(loud.ctx, snapshot, animator);
-    // Full readout (round + drops left) at body size while emphasized.
-    const status = callFor(loud.calls, TEXT.roundStatus(2, 15));
+    // Emphasis applies to the round readout (body size) and the target
+    // progress. The drops count (15 left) is NOT part of the window — above
+    // the low-drops threshold it is never drawn, not even in this window.
+    const status = callFor(loud.calls, TEXT.roundIndexLabel(2));
     expect(status.font).toContain(`${DESIGN.fontSize.body}px`);
     expect(loud.calls.map((call) => call.text)).toContain(TEXT.scoreProgress(120, 250));
+    expect(loud.calls.some((call) => call.text.endsWith('개 남음'))).toBe(false);
 
     animator.update(snapshot, HUD_LAYOUT.round.emphasisMs);
     expect(animator.roundEmphasized).toBe(false);
@@ -188,7 +191,7 @@ describe('HUD progressive disclosure', () => {
     drawHud(quiet.ctx, snapshot, animator);
     const quietTexts = quiet.calls.map((call) => call.text);
     // The combined readout is gone; only the compact caption lines remain…
-    expect(quietTexts).not.toContain(TEXT.roundStatus(2, 15));
+    expect(quietTexts).not.toContain(TEXT.dropsRemaining(15));
     expect(quietTexts).toContain(TEXT.roundIndexLabel(2));
     expect(quietTexts).toContain(TEXT.scoreProgress(120, 250));
     // …and 15 drops left is not a concern, so no drops line is drawn.
@@ -223,19 +226,36 @@ describe('HUD progressive disclosure', () => {
       round: roundOf({ index: 1, dropBudget: 15, dropsUsed: 7 }),
     };
     animator.update(comfortable, 16);
-    animator.update(comfortable, HUD_LAYOUT.round.emphasisMs + 1);
-    expect(animator.roundEmphasized).toBe(false);
+    expect(animator.roundEmphasized).toBe(true);
+    // 8 drops left during the emphasis window: no drops line at all.
+    const loudPlenty = createStubContext();
+    drawHud(loudPlenty.ctx, comfortable, animator);
+    expect(loudPlenty.calls.some((call) => call.text.endsWith('개 남음'))).toBe(false);
 
+    animator.update(comfortable, HUD_LAYOUT.round.emphasisMs);
+    expect(animator.roundEmphasized).toBe(false);
     const plenty = createStubContext();
     drawHud(plenty.ctx, comfortable, animator);
     expect(plenty.calls.some((call) => call.text === TEXT.dropsRemaining(8))).toBe(false);
 
+    // A new round index reopens the emphasis window (as in real play).
     const scarce: GameSnapshot = {
       ...baseSnapshot(),
-      round: roundOf({ index: 1, dropBudget: 15, dropsUsed: 12 }),
+      round: roundOf({ index: 2, dropBudget: 15, dropsUsed: 12 }),
     };
     animator.update(scarce, 16);
-    animator.update(scarce, HUD_LAYOUT.round.emphasisMs + 1);
+    expect(animator.roundEmphasized).toBe(true);
+    // 3 drops left during the emphasis window: the warning line appears too.
+    const loudScarce = createStubContext();
+    drawHud(loudScarce.ctx, scarce, animator);
+    const loudDrops = callFor(loudScarce.calls, TEXT.dropsRemaining(3));
+    expect(loudDrops.fillStyle).toBe(PALETTE.accent.warning);
+    expect(loudScarce.scales).toContainEqual({
+      x: HUD_LAYOUT.round.lowDropsScale,
+      y: HUD_LAYOUT.round.lowDropsScale,
+    });
+
+    animator.update(scarce, HUD_LAYOUT.round.emphasisMs);
     const warning = createStubContext();
     drawHud(warning.ctx, scarce, animator);
     const drops = callFor(warning.calls, TEXT.dropsRemaining(3));

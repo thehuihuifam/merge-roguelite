@@ -174,7 +174,7 @@ describe('RoundRunner.getHudState', () => {
 });
 
 describe('round HUD drawing', () => {
-  it('shows the round number, target progress and drops left', () => {
+  it('shows the round number and target progress, hiding drops while the budget is comfortable', () => {
     const { ctx, texts } = createStubContext();
     drawHud(ctx, {
       ...baseSnapshot(),
@@ -186,8 +186,11 @@ describe('round HUD drawing', () => {
         dropBudget: 18,
       },
     });
-    expect(texts).toContain(TEXT.roundStatus(2, 15));
+    expect(texts).toContain(TEXT.roundIndexLabel(2));
     expect(texts).toContain(TEXT.scoreProgress(120, 250));
+    // 15 drops left is above the low-drops threshold: the drops text is not
+    // drawn at all — not even inside the round-start emphasis window.
+    expect(texts.some((text) => text.endsWith('개 남음'))).toBe(false);
   });
 
   it('clamps the drops-left readout at zero past the budget', () => {
@@ -202,7 +205,9 @@ describe('round HUD drawing', () => {
         dropBudget: ROUNDS.firstDropBudget,
       },
     });
-    expect(texts).toContain(TEXT.roundStatus(1, 0));
+    expect(texts).toContain(TEXT.dropsRemaining(0));
+    // The only "개 남음" line is the clamped low-drops warning.
+    expect(texts.filter((text) => text.endsWith('개 남음'))).toEqual([TEXT.dropsRemaining(0)]);
   });
 
   it('draws no round readout when the snapshot carries no round state', () => {

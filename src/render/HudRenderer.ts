@@ -235,17 +235,22 @@ function drawRoundInfo(
   const { caption, body } = DESIGN.fontSize;
   const { medium, bold } = DESIGN.fontWeight;
   const dropsLeft = Math.max(0, round.dropBudget - round.dropsUsed);
-  const lowDrops = dropsLeft <= HUD_LAYOUT.round.lowDropsThreshold;
+  // One rule for the drops-left line in every phase: it exists only while the
+  // budget is actually running low. The round-start emphasis window highlights
+  // the round readout and the target progress — never the drops line.
+  const showDrops = dropsLeft <= HUD_LAYOUT.round.lowDropsThreshold;
   ctx.save();
   ctx.textBaseline = 'top';
   ctx.textAlign = 'left';
   if (emphasized) {
-    // Round-start window: the full readout, bigger and brighter; the drops
-    // half flips to the warning colour as soon as the budget runs low.
-    ctx.fillStyle = lowDrops ? PALETTE.accent.warning : PALETTE.text.primary;
+    // Round-start window: the round number (body size) and the target
+    // progress. The drops count is NOT part of this line — it follows its own
+    // low-budget condition below, so a comfortable budget stays invisible
+    // even during the first seconds of a round.
+    ctx.fillStyle = PALETTE.text.primary;
     ctx.font = `${bold} ${body}px ${FONT}`;
     ctx.fillText(
-      TEXT.roundStatus(round.index, dropsLeft),
+      TEXT.roundIndexLabel(round.index),
       HUD_LAYOUT.margin,
       HUD_LAYOUT.round.emphasizedY,
     );
@@ -267,15 +272,17 @@ function drawRoundInfo(
       HUD_LAYOUT.margin,
       HUD_LAYOUT.round.quietProgressY,
     );
-    // The drops-left warning surfaces only when it is actually a concern.
-    if (lowDrops) {
-      ctx.fillStyle = PALETTE.accent.warning;
-      ctx.font = `${bold} ${caption}px ${FONT}`;
-      const scale = HUD_LAYOUT.round.lowDropsScale;
-      ctx.translate(HUD_LAYOUT.margin, HUD_LAYOUT.round.dropsY + caption / 2);
-      ctx.scale(scale, scale);
-      ctx.fillText(TEXT.dropsRemaining(dropsLeft), 0, -caption / 2);
-    }
+  }
+  // The drops-left warning surfaces only when it is actually a concern —
+  // same threshold in the emphasis window and in quiet mode.
+  if (showDrops) {
+    ctx.fillStyle = PALETTE.accent.warning;
+    ctx.font = `${bold} ${caption}px ${FONT}`;
+    const scale = HUD_LAYOUT.round.lowDropsScale;
+    const dropsY = emphasized ? HUD_LAYOUT.round.emphasizedDropsY : HUD_LAYOUT.round.dropsY;
+    ctx.translate(HUD_LAYOUT.margin, dropsY + caption / 2);
+    ctx.scale(scale, scale);
+    ctx.fillText(TEXT.dropsRemaining(dropsLeft), 0, -caption / 2);
   }
   ctx.restore();
 }
