@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.17 — 스폰 페널티를 Game의 신규 공 발급에 연결
+Active Next Action: Task 2.18 — 큰 공 스폰 리스크 카드 추가
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.16 완료 — 큰 공 스폰 페널티 상태와 카드 컨텍스트 계약 추가
+- 마지막 갱신: Task 2.17 완료 — 스폰 페널티를 Game의 신규 공 발급에 연결
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## 이번 루프 기록 (2026-09-25)
@@ -169,10 +169,13 @@ Active Next Action: Task 2.17 — 스폰 페널티를 Game의 신규 공 발급�
   - 테스트 추가: `tests/spawnTierPenalty.test.ts` 9건 — 비활성 통과, 정확히 N회 보장, 자연 roll 이 더 크면 유지, 중첩 최댓값(양방향), reset, 스폰 범위 밖/소수/NaN 티어 거부, 잘못된 횟수·apply 인자 거부, 커스텀 스폰 개수.
   - 문서: `docs/ARCHITECTURE.md` 확장 포인트 표에 스폰 하한 페널티 행 추가(Game 연결은 Task 2.17, HUD 노출은 Task 2.19).
 
-- [ ] **Task 2.17: 스폰 페널티를 Game의 신규 공 발급에 연결**
+- [x] **Task 2.17: 스폰 페널티를 Game의 신규 공 발급에 연결**
   - 선행: Task 2.16. 기존 수정: `src/core/Game.ts`. 신규: `tests/gameSpawnPenalty.test.ts`.
   - 확장 방식: Game이 상태 객체를 소유하고 카드 컨텍스트 콜백을 구현한다. 선택 당시 이미 보이는 held/NEXT는 변경하지 않고 이후 신규 발급 때만 하한을 적용한다. 폭탄 여부 난수와 발급 순서는 유지하고 재시작 시 reset한다.
   - 완료 기준: 테스트 카드 적용 후 기존 NEXT 유지, 다음 N회 신규 발급 하한 보장, 이후 정상 복귀, 재시작 해제 통합 테스트 통과. UI/덱 변경은 제외, 10분.
+  - 실제 구현: `Game` 이 `SpawnTierPenalty` 를 소유하고(`핵심 필드 spawnPenalty`), `drop()` 의 **신규 발급 roll 에만** `spawnPenalty.apply(...)` 를 적용한다. `heldTier`/`nextTier` 미리보기를 비롯해 이미 보이는 공은 그대로 두고, `rollSpawnSpecial()` 과 난수 소비 순서도 변경하지 않았다. `buildCardContext` 가 `raiseSpawnTierFloor` 를 상태 객체에 위임하고, `resetRun()` 이 롤링 전에 페널티를 해제한다.
+  - 테스트 추가: `tests/gameSpawnPenalty.test.ts` 4건 — 카드 적용 직후 held/NEXT 불변, 시드 4242 에서 하한이 정확히 2회 물린 뒤(3·3) 원래 시드 스트림의 3·4번째 roll 로 복귀, 진행 중 적용 시 이후 드롭부터 발동, 게임 오버 후 재시작하면 하한 없는 새 스트림으로 복귀.
+  - 문서: `docs/GDD.md` 3.2 에 신규 발급 한정 규칙(보이는 공 불변), `docs/ARCHITECTURE.md` 스폰 하한 행의 Game 연결 지점 갱신.
 
 - [ ] **Task 2.18: 큰 공 스폰 리스크 카드 추가**
   - 선행: Task 2.17. 신규: `src/systems/cards/SpawnLargerBallsCard.ts`, `tests/spawnLargerBallsCard.test.ts`. 기존 수정: `src/systems/cards/BasicMergeCardProvider.ts`, `src/config/gameConfig.ts`, `tests/basicMergeCardProvider.test.ts`.

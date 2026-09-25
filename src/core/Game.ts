@@ -9,6 +9,7 @@ import {
 } from '@/config/gameConfig';
 import { BallFactory, getTierSpec } from '@/core/ball/BallFactory';
 import { BallRegistry } from '@/core/ball/BallRegistry';
+import { SpawnTierPenalty } from '@/core/ball/SpawnTierPenalty';
 import { OverflowDetector } from '@/core/danger/OverflowDetector';
 import { EventBus } from '@/core/events/EventBus';
 import { MergeResolver } from '@/core/merge/MergeResolver';
@@ -120,6 +121,8 @@ export class Game {
   private readonly overflow: OverflowDetector;
   private readonly merges = new MergeResolver();
   private readonly registry = new BallRegistry();
+  /** Risk-card spawn floor (Task 2.17): caps the tier of new dispenser rolls. */
+  private readonly spawnPenalty = new SpawnTierPenalty();
   private readonly fsm = new GameStateMachine();
 
   private rng = new SeededRandom(1);
@@ -215,7 +218,9 @@ export class Game {
     this.cooldownMs = DROP_COOLDOWN_MS;
     this.heldTier = this.nextTier;
     this.heldSpecial = this.nextSpecial;
-    this.nextTier = this.factory.rollSpawnTier();
+    // Spawn penalty (Task 2.17): only the freshly rolled ball is floored. The
+    // held ball and the NEXT preview the player already sees stay untouched.
+    this.nextTier = this.spawnPenalty.apply(this.factory.rollSpawnTier());
     this.nextSpecial = this.factory.rollSpawnSpecial();
     this.aimX = this.clampAimX(this.aimX, this.heldTier);
     this.fsm.send('drop');
@@ -345,6 +350,7 @@ export class Game {
     this.overflow.reset();
     this.scoreState.resetRun();
     this.modifierStack.clear();
+    this.spawnPenalty.reset();
     this.time.reset();
     this.heldTier = this.factory.rollSpawnTier();
     this.nextTier = this.factory.rollSpawnTier();
@@ -382,6 +388,9 @@ export class Game {
       },
       shiftDangerLine: (deltaY: number): void => {
         this.overflow.shiftDangerLine(deltaY);
+      },
+      raiseSpawnTierFloor: (minTier: number, count: number): void => {
+        this.spawnPenalty.raise(minTier, count);
       },
     };
   }
