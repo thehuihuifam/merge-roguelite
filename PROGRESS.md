@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.2
+Active Next Action: Task 2.3
 
 - 버전: v0.1.0 (MVP 베이스라인)
-- 마지막 갱신: Task 2.1 완료 — 근접 실패 붉은 비네트 애니메이션 + 심박 펄스 연출
+- 마지막 갱신: Task 2.2 완료 — 라운드별 목표 점수와 드롭 예산, 클리어 카드 보상
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -63,7 +63,13 @@ Active Next Action: Task 2.2
   - `CanvasRenderer` 는 주입 가능한 `Clock`(기본 `performance.now`)로 프레임 dt 를 계산해 애니메이터를 진행하고, 클립 안에서 공 뒤 · 카드 오버레이/HUD 아래에 비네트를 합성한다.
   - 상수는 `src/config/gameConfig.ts` 의 `NEAR_MISS_FX` 블록, 비네트 색은 `src/render/palette.ts` 의 `nearMissVignetteRgb` 로 이동(매직 넘버 금지 규칙).
   - 테스트 추가: `tests/nearMissVignette.test.ts` 11건 — 심박 주기·클램프, 펄스 0..1·사이클 랩, lub-dub 두 봉우리, 페이드인/페이드아웃 타이밍, 게임 오버 hold, severity 별 심박 속도 차이, 페이드아웃 중 박동 유지, 스텁 ctx 드로잉 3건(그라디언트 정지색·프레임 크기·알파 0 무그림).
-- [ ] Task 2.2: `IRoundSystem` 기본 구현 (라운드별 목표 점수, 클리어 시 카드 보상)
+- [x] **Task 2.2: `IRoundSystem` 기본 구현 (라운드별 목표 점수, 클리어 시 카드 보상)**
+  - 실제 구현: `src/systems/BasicRoundSystem.ts` — 라운드마다 "그 라운드 안에서 벌어야 하는 점수" 목표(`ROUNDS.firstTargetScore` 150 + 100/라운드)와 드롭 예산(15 + 3/라운드)을 관리. 진행도는 라운드 시작 시점부터의 점수 델타라서, 큰 점수가 한 번에 튀어도 다음 라운드가 덤으로 클리어되지 않는다. 예산을 먼저 쓰면 라운드는 보상 없이 넘어간다(`isDropBudgetExhausted` — `IRoundSystem` 에 필드 추가).
+  - `src/systems/cards/RoundClearRewardCard.ts` — 클리어 보상 카드 `+N점`(N = 50 + 25×(라운드−1))을 즉시 지급하는 `MergeCard` 팩토리(`ROUND_CLEAR_CARD_ID`).
+  - `src/systems/RoundRunner.ts` — `EventBus` 구독(`ball:dropped`, `score:changed`, `run:started`)으로 라운드를 진행하고, 클리어 시 `Game.applyRewardCard` 로 보상 카드를 적용한 뒤 다음 라운드로 넘어간다. 보상 적용이 다시 쏘는 `score:changed` 는 가드로 막아 보상이 라운드당 1회만 지급된다.
+  - `Game.applyRewardCard(card)` 메서드 추가 — `chooseCard` 와 같은 카드 컨텍스트(`buildCardContext` 로 추출)를 쓰고, idle/game_over 에서는 거부한다. `createApp.ts` 에 `BasicRoundSystem` + `RoundRunner` 연결(해제는 `dispose`).
+  - 테스트 추가: `tests/basicRoundSystem.test.ts` 7건(목표/예산 증가, 라운드 스코프 진행도, 점수 차감 시 클리어 해제, 예산 소진, advance/reset), `tests/roundRunner.test.ts` 8건(보상 카드 수치·적용, 클리어→보상→다음 라운드, 예산 소진 시 무보상 스킵, 이미 클리어된 라운드 보호, run:started 리셋, dispose 후 무반응, 실제 Game 통합 — 보상 재진입 가드 검증), `tests/game.test.ts` 2건(`applyRewardCard` 승인/거부).
+  - 미연결: 라운드/목표/예산 HUD 표시는 Task 2.12, 보상을 자동 지급 대신 카드 선택지로 주는 것은 Task 2.13 로 백로그 추가.
 - [ ] Task 2.3: `ISpecialBall` 폭탄 공 (인접 공 제거) 구현과 스폰 확률 설정
 - [ ] Task 2.4: `ISaveSystem` localStorage 구현 (베스트 점수, 총 런 수)
 - [ ] Task 2.5: `IParticleSystem` 머지 파티클 버스트
@@ -73,6 +79,8 @@ Active Next Action: Task 2.2
 - [ ] Task 2.9: `MergeCardContext` 에 위험선 이동 필드 추가 후 `raise_danger_line` 카드를 실동작으로 연결 — 현재 이 카드는 점수 −50 만 적용하고 `severity` 0.5 만 들고 있어 보상이 없는 순수 페널티다(Task 1.2 에서 발견)
 - [ ] Task 2.10: 최대 티어 소멸(`resultTier === null`, 10,000점 보너스)에도 카드 선택창 열기 — 지금은 `CardSlowMotionSelector` 가 결과 티어가 있는 머지만 취급해서, 가장 화려한 합체가 선택 없이 지나간다(Task 1.3 에서 발견). `minResultTier` 판정에 `resultTier === null` 케이스를 추가하고 테스트 1건 보강.
 - [ ] Task 2.11: 카드 선택 키보드 지원(1/2/3 키) — 지금은 포인터 `onSelect` 만 연결돼 있어 키보드 플레이어는 타임아웃에만 의존한다(Task 1.4 에서 발견). `PointerInput` 의 keydown 스위치에 숫자 키를 추가하고 `createApp.ts` 에서 인덱스 → `game.chooseCard` 로 연결.
+- [ ] Task 2.12: 라운드 HUD 표시(라운드 번호 · 목표 진행도 · 남은 드롭) — 지금은 라운드 진행이 테스트로만 관찰되고 화면에 나오지 않는다(Task 2.2 에서 발견). `GameSnapshot` 확장 여부와 함께 착수 시 세부 스펙을 먼저 쪼갠다.
+- [ ] Task 2.13: 라운드 클리어 보상을 자동 지급 대신 카드 선택지로 — 지금은 `RoundRunner` 가 `createRoundClearRewardCard` 를 즉시 apply 해 버려 플레이어의 선택이 없다(Task 2.2 에서 발견). 슬로우모션 카드 선택 플로우 재활용을 검토한다.
 
 ### Infra
 

@@ -174,4 +174,44 @@ describe('Game', () => {
     expect(chosen).toHaveLength(1);
     expect(game.score).toBeGreaterThanOrEqual((merge?.scoreGained ?? 0) + 100);
   });
+
+  it('applies a reward card outside the card choice through the shared context', () => {
+    game = new Game();
+    game.start(1);
+    let seenScore = -1;
+    const multiplierCalls: [number, number][] = [];
+    const card: MergeCard = {
+      id: 'round-clear-test',
+      kind: 'reward',
+      title: '+30',
+      description: 'standalone bonus',
+      apply: (ctx) => {
+        seenScore = ctx.currentScore;
+        ctx.addScore(30);
+        ctx.pushScoreMultiplier(2, 2);
+      },
+    };
+
+    expect(game.applyRewardCard(card)).toBe(true);
+    expect(seenScore).toBe(0);
+    expect(game.score).toBe(30);
+    expect(multiplierCalls).toHaveLength(0);
+  });
+
+  it('rejects reward cards when no run is active', () => {
+    game = new Game();
+    let applied = false;
+    const card: MergeCard = {
+      id: 'idle-reward',
+      kind: 'reward',
+      title: '+1',
+      description: 'never applied',
+      apply: (ctx) => {
+        applied = true;
+        ctx.addScore(1);
+      },
+    };
+    expect(game.applyRewardCard(card)).toBe(false);
+    expect(applied).toBe(false);
+  });
 });

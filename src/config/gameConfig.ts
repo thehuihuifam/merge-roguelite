@@ -126,6 +126,25 @@ export const CARD_OVERLAY = {
 /** Score awarded when two max-tier balls merge and vanish. */
 export const MAX_TIER_MERGE_BONUS = 10000;
 
+/**
+ * Roguelite round structure (Task 2.2). Consumed by
+ * `src/systems/BasicRoundSystem.ts` and `src/systems/cards/RoundClearRewardCard.ts`.
+ */
+export const ROUNDS = {
+  /** Points to earn inside round 1 to clear it. */
+  firstTargetScore: 150,
+  /** Extra points required per subsequent round. */
+  targetScoreStep: 100,
+  /** Drops allotted to round 1 before the round is considered failed. */
+  firstDropBudget: 15,
+  /** Extra drops allotted per subsequent round. */
+  dropBudgetStep: 3,
+  /** Round-clear reward card bonus at round 1. */
+  rewardBaseScore: 50,
+  /** Reward card bonus growth per cleared round. */
+  rewardScorePerRound: 25,
+} as const;
+
 /** Chain bonus: each consecutive merge within one drop adds this fraction to the multiplier. */
 export const CHAIN_MULTIPLIER_STEP = 0.5;
 

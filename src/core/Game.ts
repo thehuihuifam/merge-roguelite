@@ -14,11 +14,25 @@ import { NoopNearMissEffect } from '@/systems/NoopNearMissEffect';
 import { NoopSlowMotionSelector } from '@/systems/NoopSlowMotionSelector';
 import type { GameEventMap } from '@/core/events/GameEvents';
 import type { INearMissEffect } from '@/core/interfaces/INearMissEffect';
-import type { MergeCard } from '@/core/interfaces/IMergeCard';
+import type { MergeCard, MergeCardContext } from '@/core/interfaces/IMergeCard';
 import type { IScoreModifier } from '@/core/interfaces/IScoreModifier';
 import type { ISlowMotionSelector, SlowMotionRequest } from '@/core/interfaces/ISlowMotionSelector';
 import type { GameState } from '@/core/state/GameState';
 import type { Ball, MergeEvent, MergePlan, NearMissSample } from '@/core/types';
+
+/**
+ * Synthetic merge for cards granted outside a merge moment (round clear):
+ * no board balls take part, so the sentinel ids are never looked up.
+ */
+function rewardMergeEvent(): MergeEvent {
+  return {
+    sourceIds: [-1, -1],
+    resultTier: null,
+    position: { x: BOARD.width / 2, y: BOARD.height / 2 },
+    chainIndex: 0,
+    scoreGained: 0,
+  };
+}
 
 export interface GameDependencies {
   readonly physics?: PhysicsWorld;
@@ -162,19 +176,23 @@ export class Game {
       return false;
     }
     const merge = this.pendingMerge;
-    card.apply({
-      merge,
-      currentScore: this.scoreState.score,
-      addScore: (delta: number): void => {
-        this.applyScoreDelta(delta);
-      },
-      pushScoreMultiplier: (multiplier: number, remainingMerges: number): void => {
-        this.pushTemporaryMultiplier(multiplier, remainingMerges);
-      },
-    });
+    card.apply(this.buildCardContext(merge));
     this.slowMo.onCardChosen(card, merge);
     this.clearSlowMotionSelection();
     this.fsm.send(this.resumeEvent);
+    return true;
+  }
+
+  /**
+   * Applies a standalone reward card (round-clear bonus and friends) outside
+   * the slow-motion choice, through the same context a chosen card gets.
+   * Returns false when no run is active.
+   */
+  applyRewardCard(card: MergeCard): boolean {
+    if (this.fsm.is('idle') || this.fsm.is('game_over')) {
+      return false;
+    }
+    card.apply(this.buildCardContext(rewardMergeEvent()));
     return true;
   }
 
@@ -268,6 +286,19 @@ export class Game {
       return BOARD.width / 2;
     }
     return Math.min(max, Math.max(min, x));
+  }
+
+  private buildCardContext(merge: MergeEvent): MergeCardContext {
+    return {
+      merge,
+      currentScore: this.scoreState.score,
+      addScore: (delta: number): void => {
+        this.applyScoreDelta(delta);
+      },
+      pushScoreMultiplier: (multiplier: number, remainingMerges: number): void => {
+        this.pushTemporaryMultiplier(multiplier, remainingMerges);
+      },
+    };
   }
 
   private resolveMerges(): void {

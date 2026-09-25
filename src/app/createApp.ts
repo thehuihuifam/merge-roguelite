@@ -5,9 +5,14 @@ import { TimeController } from '@/core/time/TimeController';
 import { PointerInput } from '@/input/PointerInput';
 import { CanvasRenderer } from '@/render/CanvasRenderer';
 import { cardIndexAt } from '@/render/CardOverlayRenderer';
+import { BasicRoundSystem } from '@/systems/BasicRoundSystem';
 import { CardSlowMotionSelector } from '@/systems/CardSlowMotionSelector';
+import { RoundRunner } from '@/systems/RoundRunner';
 import { SlowMotionNearMissEffect } from '@/systems/SlowMotionNearMissEffect';
 import { BasicMergeCardProvider } from '@/systems/cards/BasicMergeCardProvider';
+import { createRoundClearRewardCard } from '@/systems/cards/RoundClearRewardCard';
+import type { RoundDefinition } from '@/core/interfaces/IRoundSystem';
+import type { MergeCard } from '@/core/interfaces/IMergeCard';
 
 export interface App {
   readonly game: Game;
@@ -36,6 +41,12 @@ export function createApp(root: HTMLElement): App {
   game.events.on('run:started', ({ seed }) => {
     cardRandom.reseed(seed);
   });
+  // Roguelite rounds (Task 2.2): score targets, drop budget, clear-reward card.
+  const roundRunner = new RoundRunner(
+    game,
+    new BasicRoundSystem(),
+    (round: RoundDefinition): MergeCard => createRoundClearRewardCard(round.index),
+  );
   const renderer = new CanvasRenderer(canvas);
   let lastAimX = Number.NaN;
 
@@ -114,6 +125,7 @@ export function createApp(root: HTMLElement): App {
       loop.stop();
       input.detach();
       window.removeEventListener('resize', onResize);
+      roundRunner.dispose();
       game.dispose();
       canvas.remove();
     },
