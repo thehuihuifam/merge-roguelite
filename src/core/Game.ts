@@ -106,6 +106,11 @@ export interface GameSnapshot {
    * read-only HUD data. Absent while no penalty is in effect.
    */
   readonly spawnPenalty?: SpawnTierPenaltyState;
+  /**
+   * True while the run's score beats the best held at run start (session B
+   * game-over screen: NEW BEST badge). Absent means no record this run.
+   */
+  readonly isNewBest?: boolean;
 }
 
 /**
@@ -342,6 +347,7 @@ export class Game {
       seed: this.seed,
       chainIndex: this.chainIndex,
       ...(spawnPenalty === null ? {} : { spawnPenalty }),
+      ...(this.scoreState.isNewBest ? { isNewBest: true } : {}),
     };
   }
 
@@ -589,7 +595,9 @@ export class Game {
       this.scoreState.add(delta);
     } else {
       const clamped = Math.max(0, before + delta);
-      this.scoreState.resetRun();
+      // Mid-run reset (risk-card loss): the NEW BEST baseline stays put —
+      // only a fresh run re-bases it.
+      this.scoreState.resetScore();
       if (clamped > 0) {
         this.scoreState.add(clamped);
       }

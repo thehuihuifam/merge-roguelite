@@ -1,9 +1,17 @@
-import { BOARD, FX, SPAWN_Y } from '@/config/gameConfig';
+import { BOARD, FX, GAME_OVER, SPAWN_Y } from '@/config/gameConfig';
 import { getTierSpec } from '@/core/ball/BallFactory';
 import { drawBalls, pruneBallFx, triggerMergePop, updateBallFx } from '@/render/BallRenderer';
-import { drawCardOverlay } from '@/render/CardOverlayRenderer';
+import { drawCardOverlay, cardIndexAt } from '@/render/CardOverlayRenderer';
+import { CardOverlayAnimator } from '@/render/CardOverlayAnimator';
 import { drawDangerLine } from '@/render/DangerLineRenderer';
-import { drawGameOver, drawHeldBall, drawHud, drawIdle } from '@/render/HudRenderer';
+import {
+  RoundGaugeAnimator,
+  drawDangerTint,
+  drawRoundProgressGauge,
+  roundProgressOf,
+} from '@/render/DiegeticBoardRenderer';
+import { HudProgressionAnimator, drawHeldBall, drawHud, drawIdle } from '@/render/HudRenderer';
+import { GameOverPresenter, drawGameOver } from '@/render/GameOverRenderer';
 import { NearMissVignetteAnimator, drawNearMissVignette } from '@/render/NearMissVignetteRenderer';
 import { drawSpawnPenaltyHud } from '@/render/SpawnPenaltyHudRenderer';
 import { PostProcessPipeline } from '@/render/PostProcessPipeline';
@@ -40,6 +48,13 @@ export class CanvasRenderer {
   private readonly pipeline: PostProcessPipeline | null;
   private readonly offscreen: HTMLCanvasElement | null;
   private readonly vignette = new NearMissVignetteAnimator();
+  private readonly hudProgression = new HudProgressionAnimator();
+  private readonly roundGauge = new RoundGaugeAnimator();
+  private readonly gameOverPresenter = new GameOverPresenter();
+  private readonly cardAnimator = new CardOverlayAnimator();
+  /** Last mouse position in board coordinates (null = not hovering). */
+  private hoverX: number | null = null;
+  private hoverY: number | null = null;
   private readonly clock: Clock;
   private readonly particles: IParticleSystem | undefined;
   private lastFrameMs: number | null = null;
@@ -143,6 +158,21 @@ export class CanvasRenderer {
     this.pipeline?.pulseChromaticAberration(strength);
   }
 
+  /**
+   * Starts the card-selection exit animation (session B, Task 4): the chosen
+   * card scales up slightly while the hand fades out over
+   * `CARD_OVERLAY.exitMs`. Called by the app layer when a choice lands.
+   */
+  notifyCardChosen(cardIndex: number): void {
+    this.cardAnimator.notifyChosen(cardIndex);
+  }
+
+  /** Mouse position in board coordinates for the card hover lift; null clears. */
+  setCardHover(boardX: number | null, boardY: number | null): void {
+    this.hoverX = boardX;
+    this.hoverY = boardY;
+  }
+
   /** Trigger screen flash for big merges / bomb. */
   triggerFlash(color: string = FX.flashColor, alpha: number = FX.flashAlpha): void {
     this.flashRemainingMs = FX.flashDurationMs;
@@ -223,6 +253,21 @@ export class CanvasRenderer {
     this.lastFrameMs = frameMs;
 
     this.updateFx(deltaMs);
+    this.hudProgression.update(snapshot, deltaMs);
+    this.gameOverPresenter.update(snapshot, frameMs);
+    // NEW BEST celebration: the screen's colours split on each badge pulse.
+    if (this.gameOverPresenter.consumeAberrationPulse(frameMs, snapshot.isNewBest === true)) {
+      this.triggerChromaticAberration(GAME_OVER.newBest.aberration);
+    }
+    const roundProgress = roundProgressOf(snapshot);
+    this.roundGauge.update(roundProgress, deltaMs);
+    const liveCards = snapshot.state === 'slowmo_select' ? snapshot.pendingCards : [];
+    this.cardAnimator.update(liveCards, deltaMs);
+    if (liveCards.length > 0 && this.hoverX !== null && this.hoverY !== null) {
+      this.cardAnimator.setHover(cardIndexAt(liveCards, this.hoverX, this.hoverY));
+    } else {
+      this.cardAnimator.setHover(null);
+    }
     const activeIds = new Set<number>(snapshot.balls.map((b) => b.id));
     pruneBallFx(activeIds);
 
@@ -249,6 +294,9 @@ export class CanvasRenderer {
     ctx.beginPath();
     ctx.rect(0, 0, BOARD.width, BOARD.height);
     ctx.clip();
+    // Diegetic danger blush: the board background itself reacts before any
+    // chrome does (session B, Task 2).
+    drawDangerTint(ctx, snapshot.nearMissIntensity);
     drawDangerLine(ctx, snapshot.dangerLineY, snapshot.nearMissIntensity);
     drawBalls(ctx, snapshot.balls);
     if (this.particles !== undefined) {
@@ -257,6 +305,8 @@ export class CanvasRenderer {
     drawHeldBall(ctx, snapshot, SPAWN_Y);
     this.vignette.update(snapshot.nearMissIntensity, deltaMs, snapshot.state === 'game_over');
     drawNearMissVignette(ctx, this.vignette.getAlpha(), this.vignette.getPulse());
+    // Diegetic round progress: a hairline gauge embedded in the bottom frame.
+    drawRoundProgressGauge(ctx, roundProgress, this.roundGauge.glow);
 
     if (this.flashRemainingMs > 0) {
       const alpha = (this.flashRemainingMs / FX.flashDurationMs) * this.flashAlpha;
@@ -269,17 +319,20 @@ export class CanvasRenderer {
 
     ctx.restore();
 
-    if (snapshot.state === 'slowmo_select') {
-      drawCardOverlay(ctx, snapshot.pendingCards);
+    // Card overlay: live hand (springing in) or the exit animation that keeps
+    // drawing for a beat after the choice closed the window.
+    const cardFrame = this.cardAnimator.getFrame();
+    if (cardFrame !== null) {
+      drawCardOverlay(ctx, cardFrame.cards, cardFrame.presentation);
     }
 
-    drawHud(ctx, snapshot);
+    drawHud(ctx, snapshot, this.hudProgression);
     drawSpawnPenaltyHud(ctx, snapshot);
 
     if (snapshot.state === 'idle') {
       drawIdle(ctx);
     } else if (snapshot.state === 'game_over') {
-      drawGameOver(ctx, snapshot);
+      drawGameOver(ctx, snapshot, this.gameOverPresenter);
     }
 
     // WebGL path: the scene above landed on the offscreen canvas — upload it

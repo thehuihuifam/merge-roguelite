@@ -197,6 +197,23 @@ export const CARD_OVERLAY = {
   bodyLineHeight: 15,
   badgeHeight: 18,
   badgeWidth: 46,
+  /**
+   * Animation (UX overhaul session B, Task 4). Entrance springs in with the
+   * canvas counterpart of `DESIGN.easing.emphasis` (`easeOutBack`), exits
+   * decelerate with `easeOutCubic` — see `src/render/motion.ts`.
+   */
+  /** Entrance: scale-in + fade-in when the hand appears, ms. */
+  entranceMs: 200,
+  /** Scale the hand springs up from during the entrance. */
+  entranceScaleFrom: 0.86,
+  /** Exit: the chosen card scales up slightly as the hand fades, ms. */
+  exitMs: 150,
+  /** Scale the chosen card grows to while exiting. */
+  exitScaleTo: 1.08,
+  /** How far a hovered card lifts under the mouse, board units. */
+  hoverLiftPx: DESIGN.space.sm,
+  /** Alpha of the risk blush at the top edge of a risk card's background. */
+  riskGradientAlpha: 0.16,
 } as const;
 
 /** Score awarded when two max-tier balls merge and vanish. */
@@ -253,6 +270,138 @@ export const SPAWN_PENALTY_HUD = {
   x: BOARD.width - 14,
   /** Top of the label line, board units. */
   y: 92,
+} as const;
+
+/**
+ * HUD layout (UX overhaul session B, Task 1). Every HUD coordinate, size and
+ * margin lives here, derived from the session-A DESIGN tokens — renderers hold
+ * no layout numbers of their own.
+ *
+ * Information hierarchy (progressive disclosure):
+ * - primary   → SCORE, top centre, always, biggest and brightest;
+ * - secondary → BEST (top-left) and NEXT (top-right corner), always, caption;
+ * - tertiary  → round progress, drops left, SLOW badge, spawn penalty:
+ *                each rendered only while it matters.
+ */
+export const HUD_LAYOUT = {
+  /** Shared left/right gutter for the corner blocks, board units. */
+  margin: DESIGN.space.lg,
+  /** Primary: current score — top centre, `fontSize.display`. */
+  score: {
+    labelY: DESIGN.space.sm,
+    valueY: DESIGN.space.sm + DESIGN.fontSize.caption + DESIGN.space.xs,
+  },
+  /** Secondary: best score — top-left corner, `fontSize.caption`. */
+  best: {
+    labelY: DESIGN.space.sm,
+    valueY: DESIGN.space.sm + DESIGN.fontSize.caption + DESIGN.space.xs,
+  },
+  /**
+   * Secondary: next-ball preview — diegetic placement (session B, Task 2):
+   * beside the actual spawn point (board top centre, `SPAWN_Y`) instead of a
+   * fixed screen corner, so the player reads it together with the aim guide.
+   */
+  next: {
+    /** Horizontal offset of the preview centre from the spawn column. */
+    offsetX: 56,
+    /** Preview centre height — the spawn height. */
+    previewY: SPAWN_Y,
+    /** Preview balls are scaled down to at most this radius. */
+    previewRadius: 18,
+    /** Caption label sits this far under the preview ball. */
+    labelGap: DESIGN.space.xs,
+  },
+  /** Tertiary: round block — left column below BEST. */
+  round: {
+    /** Round readout (body size) during the emphasis window. */
+    emphasizedY: 44,
+    /** Target-progress line under the emphasized readout. */
+    progressY: 64,
+    /** Compact round label (caption) after the emphasis window. */
+    quietY: 44,
+    /** Target-progress line while quiet. */
+    quietProgressY: 58,
+    /** Low-drops warning line while quiet. */
+    dropsY: 72,
+    /** How long a round's readout stays emphasized after it starts, ms. */
+    emphasisMs: 3000,
+    /** Drops left at or below this count switch to the warning emphasis. */
+    lowDropsThreshold: 5,
+    /** Slight scale-up applied to the low-drops warning line. */
+    lowDropsScale: 1.1,
+  },
+  /** Tertiary: slow-motion badge — centred under SCORE, only while slowed. */
+  slowBadge: {
+    /** One spacing step under the score value block. */
+    y:
+      DESIGN.space.sm +
+      DESIGN.fontSize.caption +
+      DESIGN.space.xs +
+      DESIGN.fontSize.display +
+      DESIGN.space.sm,
+  },
+  /**
+   * Diegetic round-progress gauge (session B, Task 2): a thin strip embedded
+   * in the board's bottom frame that fills with the round's score progress.
+   */
+  roundGauge: {
+    /** Gauge thickness, board units — a hairline in the frame, not a bar. */
+    thickness: 4,
+    /** Brief glow when the gauge reaches 100%, ms. */
+    glowMs: 600,
+    /** Peak glow radius (shadowBlur) at the moment of completion. */
+    glowBlur: DESIGN.glow.medium,
+  },
+  /**
+   * Diegetic danger tint (session B, Task 2): the board background itself
+   * blushes red when a ball rests close to the danger line. Driven by the
+   * existing `nearMissIntensity` (0 at the warning-zone floor, 1 at the line).
+   */
+  dangerTint: {
+    /** Tint starts once a ball is within this distance of the danger line. */
+    thresholdPx: 30,
+    /** Strongest tint alpha — subtle, the vignette carries the real alarm. */
+    maxAlpha: 0.1,
+  },
+} as const;
+
+/**
+ * Game-over screen (UX overhaul session B, Task 3). Consumed by
+ * `src/render/GameOverRenderer.ts`: count-up timing, the NEW BEST celebration
+ * and every layout slot. Sizes derive from the session-A DESIGN tokens.
+ */
+export const GAME_OVER = {
+  /** Score count-up (0 → final) duration, ms — eased with `easeOutCubic`. */
+  countUpMs: 800,
+  /** The final score is the biggest number in the game: display ×1.5. */
+  scoreFontSize: Math.round(DESIGN.fontSize.display * 1.5),
+  /** NEW BEST celebration. */
+  newBest: {
+    /** Chromatic-aberration pulse strength fired while the badge shows. */
+    aberration: 0.014,
+    /** Period of the badge heartbeat and the aberration pulses, ms. */
+    pulsePeriodMs: 900,
+    /** Number of aberration pulses — the celebration has an end. */
+    pulseCount: 4,
+    /** Badge heartbeat scale range: 1 → this value. */
+    badgeScaleMax: 1.06,
+    badgeWidth: 132,
+    badgeHeight: 30,
+  },
+  /** Vertical layout slots (text baseline centres), board units. */
+  layout: {
+    titleY: 176,
+    badgeY: 236,
+    scoreLabelY: 288,
+    scoreY: 330,
+    bestY: 398,
+    roundY: 428,
+    buttonY: 500,
+    buttonWidth: 208,
+    buttonHeight: 52,
+    buttonRadius: CARD_OVERLAY.cornerRadius,
+    hintY: 592,
+  },
 } as const;
 
 /** Audio tuning (Task 2.6). Consumed by WebAudioSystem. */
@@ -359,12 +508,22 @@ export const TEXT = {
   // Game over / idle
   runOverTitle: '런 종료',
   restartHint: '클릭/터치 또는 R키로 재시작',
+  /** NEW BEST badge (session B game-over redesign). */
+  newBestBadge: 'NEW BEST',
+  /** Restart button label (session B game-over redesign). */
+  restartButton: '다시 시작',
+  /** Round reached line, e.g. "라운드 4 도달". */
+  roundReached: (round: number): string => `라운드 ${round} 도달`,
   gameTitle: '머지 로그라이트',
   startHint: '클릭/터치로 시작',
   // Dynamic templates — functions return Korean strings
   slowMotionBadgeDynamic: (scaleText: string): string => `슬로우 ×${scaleText}`,
   roundStatus: (index: number, dropsLeft: number): string =>
     `라운드 ${index} · ${dropsLeft}개 남음`,
+  /** Quiet-mode round label (session B hierarchy): the round number alone. */
+  roundIndexLabel: (index: number): string => `라운드 ${index}`,
+  /** Low-drops warning line (session B hierarchy). */
+  dropsRemaining: (dropsLeft: number): string => `${dropsLeft}개 남음`,
   scoreProgress: (progress: number, target: number): string =>
     `${progress.toLocaleString('ko-KR')} / ${target.toLocaleString('ko-KR')}`,
   /** Card overlay hint: the choice has no time limit. */

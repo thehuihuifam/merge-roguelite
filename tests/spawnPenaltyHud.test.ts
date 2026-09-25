@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { BOARD, DANGER_LINE_Y, PHYSICS_STEP_MS, DESIGN } from '@/config/gameConfig';
 import { Game } from '@/core/Game';
 import { OverflowDetector } from '@/core/danger/OverflowDetector';
-import { SPAWN_PENALTY_HUD } from '@/config/gameConfig';
+import { HUD_LAYOUT, SPAWN_PENALTY_HUD } from '@/config/gameConfig';
 import { drawSpawnPenaltyHud } from '@/render/SpawnPenaltyHudRenderer';
 import { PALETTE } from '@/render/palette';
 import type { GameSnapshot } from '@/core/Game';
 import type { MergeCardContext, RiskCard } from '@/core/interfaces/IMergeCard';
 
-/** Bottom edge of the NEXT preview ball in the HUD (see HudRenderer). */
-const NEXT_PREVIEW_BOTTOM = 48 + 18;
+/** Bottom edge of the NEXT preview ball (diegetic slot beside the spawn point). */
+const NEXT_PREVIEW_BOTTOM = HUD_LAYOUT.next.previewY + HUD_LAYOUT.next.previewRadius;
 
 function floorCard(): RiskCard {
   return {
@@ -163,9 +163,9 @@ describe('drawSpawnPenaltyHud', () => {
   });
 
   it('sits below the NEXT preview and above the danger line, clear of ROUND', () => {
-    // Vertical band must fit between the NEXT preview and the danger line;
-    // ROUND is drawn on the left column at the same height, so the spawn HUD
-    // must stay right-aligned.
+    // Vertical band must fit between the diegetic NEXT preview (beside the
+    // spawn point) and the danger line; the round block is drawn on the left
+    // column at the same height, so the spawn HUD must stay right-aligned.
     expect(SPAWN_PENALTY_HUD.y).toBeGreaterThanOrEqual(NEXT_PREVIEW_BOTTOM);
     expect(SPAWN_PENALTY_HUD.y + DESIGN.fontSize.caption).toBeLessThanOrEqual(DANGER_LINE_Y);
     expect(SPAWN_PENALTY_HUD.x).toBe(BOARD.width - 14);
