@@ -8,7 +8,10 @@ src/
   core/        순수 도메인 로직. 의존: config 만. DOM · Canvas · matter-js 금지.
     interfaces/  확장 포인트 계약. 구현체는 systems/ 에 둔다.
   physics/     matter-js 어댑터. 의존: config, core/types, core/ball(티어 반지름). core 로 역의존 금지.
-  render/      Canvas 2D. 의존: config, core(타입과 GameSnapshot 만). 게임 상태를 바꾸지 않는다.
+  render/      Canvas 2D + WebGL 포스트프로세싱(PostProcessPipeline, UX 세션 A). 의존: config, core(타입과 GameSnapshot 만). 게임 상태를 바꾸지 않는다.
+             씬은 항상 Canvas 2D 로 그린다 — 하드웨어 WebGL 이 있으면 오프스크린 캔버스에 그린 뒤 텍스처로 업로드해
+             블룸·비네트·색수차·그레인 4효과를 '하나의' 프래그먼트 셰이더 패스로 합성해 화면에 출력하고(src/render/shaders/),
+             WebGL 이 없거나 소프트웨어 래스터라이저(SwiftShader/llvmpipe)면 기존처럼 캔버스에 직접 그린다(폴백 공존).
   input/       DOM 이벤트 → 의도(aim/drop/restart/nudge). 게임을 직접 모른다(콜백만).
   systems/     확장 포인트 인터페이스의 구현체. 의존: core/interfaces, core/time 등.
   app/         조립과 프레임 루프. 유일하게 모든 계층을 import 하는 곳.

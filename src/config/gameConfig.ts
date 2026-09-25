@@ -339,6 +339,43 @@ export const TEXT = {
 };
 
 /**
+ * Post-processing tuning (UX overhaul session A). Consumed by
+ * `src/render/PostProcessPipeline.ts` and the four shader chunks in
+ * `src/render/shaders/`. All four effects are composed into ONE full-screen
+ * fragment-shader pass — never four separate passes (mobile frame budget).
+ */
+export const POST_FX = {
+  bloom: {
+    /** Master bloom strength. */
+    intensity: 0.65,
+    /** Luma threshold above which a pixel bleeds light into neighbours. */
+    threshold: 0.55,
+    /** Blur radius in texels for the bloom ring taps. */
+    radiusTexels: 1.7,
+  },
+  vignette: {
+    /** Always-on edge darkening for mood and focus. */
+    baseIntensity: 0.22,
+    /** Extra vignette added by near-miss pressure (severity 1). */
+    nearMissBoost: 0.5,
+  },
+  chromaticAberration: {
+    /** Always-on channel split, in UV units at the screen edge. */
+    baseIntensity: 0.0012,
+    /** Spike added when a big merge lands. */
+    mergeSpike: 0.01,
+    /** Spike added on bomb detonations and max-tier annihilations. */
+    detonationSpike: 0.028,
+    /** Exponential decay time constant of a spike, in ms. */
+    spikeDecayMs: 260,
+  },
+  grain: {
+    /** Always-on film grain for texture (subtle). */
+    intensity: 0.045,
+  },
+} as const;
+
+/**
  * Visual FX tuning (merge flash, camera shake, squash-stretch, merge pop).
  * All magic numbers for polish effects live here.
  */

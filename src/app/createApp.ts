@@ -1,4 +1,4 @@
-import { BALL_TIERS, FX, MAX_TIER } from '@/config/gameConfig';
+import { BALL_TIERS, FX, MAX_TIER, POST_FX } from '@/config/gameConfig';
 import { GameLoop } from '@/app/GameLoop';
 import { composeRoundSnapshot } from '@/app/composeRoundSnapshot';
 import { Game } from '@/core/Game';
@@ -102,6 +102,12 @@ export function createApp(root: HTMLElement): App {
       const shakeIntensity = tier === null ? 1.5 : 0.5 + tier * 0.18;
       renderer.triggerShake(shakeIntensity);
     }
+    // Post-process: the screen's colours split for a beat on big merges.
+    renderer.triggerChromaticAberration(
+      tier === null
+        ? POST_FX.chromaticAberration.detonationSpike
+        : POST_FX.chromaticAberration.mergeSpike,
+    );
   });
   game.events.on('ball:spawned', ({ ball }) => {
     triggerMergePop(ball.id);
@@ -128,6 +134,7 @@ export function createApp(root: HTMLElement): App {
     audio.play('merge_big', { pitch: frequencyForMergeTier(null, 0), volume: 1 });
     renderer.triggerFlash('#ffffff', FX.flashAlpha);
     renderer.triggerShake(2.0);
+    renderer.triggerChromaticAberration(POST_FX.chromaticAberration.detonationSpike);
   });
   game.events.on('danger:nearMissEnter', (sample) => {
     const ball = game.getSnapshot().balls.find((b) => b.id === sample.ballId);
