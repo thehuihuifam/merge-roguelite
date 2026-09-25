@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.7
+Active Next Action: Task 2.8
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.6 완료 — WebAudio 기반 효과음과 티어 비례 피치
+- 마지막 갱신: Task 2.7 완료 — 배율 카드 지속 시간 관리 ModifierStack
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -93,7 +93,11 @@ Active Next Action: Task 2.7
   - 설정 추가: `src/config/gameConfig.ts` 에 `AUDIO` 블록(baseFreq, semitonePerTier, chainSemitone, masterVolume, durations).
   - `createApp.ts` 연결: `WebAudioSystem` 생성, 이벤트 구독 `merge:resolved`(tier/chain → frequencyForMergeTier → merge/merge_big), `ball:dropped`(drop), `ball:detonated`(merge_big), `danger:nearMissEnter`(near_miss_loop), `danger:nearMissExit`(stop), `time:slowMotionStart`(card_show), `run:over`(game_over+loop stop), `onSelect` 에서 choose 성공 시 card_pick.
   - 테스트 추가: `tests/audioSystem.test.ts` 6건 — Node no-op 안전, muted 억제, frequency가 tier/chain에 비례 증가, null tier 처리, 모든 cue 타입 무예외.
-- [ ] Task 2.7: 배율 카드 확장 (`IScoreModifier` 를 지속 시간 기반으로 관리하는 `ModifierStack`)
+- [x] **Task 2.7: 배율 카드 확장 (`IScoreModifier` 를 지속 시간 기반으로 관리하는 `ModifierStack`)**
+  - 실제 구현: `src/core/score/ModifierStack.ts` — 남은 머지 수·시간 기반 지속 관리. `push(id, multiplier, remainingMerges, remainingMs?)` 가 엔트리 생성, `apply(points, ctx)` 가 삽입 순서대로 배율 적용 후 머지 카운터 1 감소·만료 제거, `update(deltaMs)` 가 시간 만료 처리, `asModifier()` 가 `ScoreCalculator` 에 주입할 단일 `IScoreModifier` 반환, `pushModifier()` 로 제네릭 modifier 확장 가능, `clear()`·`activeCount`·`detach` 지원.
+  - `Game` 리팩터: `ModifierStack` 소유, 생성자에서 `asModifier()` 를 `ScoreCalculator` 에 주입, `resetRun()` 에서 `clear()`, `update()` 에서 `modifierStack.update(gameDelta)`, `pushTemporaryMultiplier()` 가 `modifierStack.push()` 로 위임 — 기존 클로저 기반 임시 수정자를 스택으로 교체.
+  - `ARCHITECTURE.md` 확장 포인트 표 갱신: 점수 수정자·세이브·사운드·파티클·특수공 기본 구현을 실제 파일명으로 업데이트.
+  - 테스트 추가: `tests/modifierStack.test.ts` 9건 — 단일 배율, 남은 횟수 소진 만료, 다중 스택 곱, detach 조기 제거, clear, 시간 만료 update, asModifier 위임, invalid 인자 예외, Game-like 통합 흐름.
 - [ ] Task 2.8: 모바일 터치 QA 및 캔버스 리사이즈 회귀 테스트(jsdom 환경 도입 여부 결정)
 - [ ] Task 2.9: `MergeCardContext` 에 위험선 이동 필드 추가 후 `raise_danger_line` 카드를 실동작으로 연결 — 현재 이 카드는 점수 −50 만 적용하고 `severity` 0.5 만 들고 있어 보상이 없는 순수 페널티다(Task 1.2 에서 발견)
 - [ ] Task 2.10: 최대 티어 소멸(`resultTier === null`, 10,000점 보너스)에도 카드 선택창 열기 — 지금은 `CardSlowMotionSelector` 가 결과 티어가 있는 머지만 취급해서, 가장 화려한 합체가 선택 없이 지나간다(Task 1.3 에서 발견). `minResultTier` 판정에 `resultTier === null` 케이스를 추가하고 테스트 1건 보강.
