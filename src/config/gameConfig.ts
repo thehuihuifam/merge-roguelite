@@ -19,6 +19,32 @@ export const OVERFLOW_GRACE_MS = 1000;
 /** Balls slower than this (px/step) count as "resting" for overflow purposes. */
 export const RESTING_SPEED_THRESHOLD = 0.6;
 
+/**
+ * Near-miss presentation (Task 2.1): red vignette fade and the heartbeat pulse
+ * that speeds up as a resting ball nears the danger line. Consumed by
+ * `src/render/NearMissVignetteRenderer.ts`.
+ */
+export const NEAR_MISS_FX = {
+  /** Ms for the vignette to fade in to the current severity. */
+  fadeInMs: 120,
+  /** Ms for the vignette to fade out after the near miss ends (GDD 3.3). */
+  fadeOutMs: 300,
+  /** Heartbeat period (ms) at severity 0 — calm. */
+  heartbeatPeriodAtSeverityZeroMs: 900,
+  /** Heartbeat period (ms) at severity 1 — touching the danger line. */
+  heartbeatPeriodAtSeverityOneMs: 450,
+  /** How far the heartbeat pushes the vignette brightness, 0..1. */
+  heartbeatPulseStrength: 0.35,
+  /** Width of one heartbeat bump, as a fraction of the cycle ("lub"). */
+  heartbeatBeatWidth: 0.1,
+  /** Phase of the softer echo beat ("dub"), 0..1. */
+  heartbeatEchoPhase: 0.22,
+  /** Echo beat strength relative to the main beat, 0..1. */
+  heartbeatEchoStrength: 0.55,
+  /** Strongest vignette alpha (severity 1 with the heartbeat at its peak). */
+  maxVignetteAlpha: 0.5,
+} as const;
+
 /** Delay after a drop before the next ball can be dropped. */
 export const DROP_COOLDOWN_MS = 550;
 

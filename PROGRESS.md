@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.1
+Active Next Action: Task 2.2
 
 - 버전: v0.1.0 (MVP 베이스라인)
-- 마지막 갱신: Task 1.4 완료 — 카드 선택 UI 렌더링과 포인터 입력 연결
+- 마지막 갱신: Task 2.1 완료 — 근접 실패 붉은 비네트 애니메이션 + 심박 펄스 연출
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -57,7 +57,12 @@ Active Next Action: Task 2.1
 
 ### 이후 (v0.3.0+, 순서 미정 — 각각 착수 시 세부 스펙을 먼저 태스크로 쪼갠다)
 
-- [ ] Task 2.1: `INearMissEffect` 붉은 화면 + 심박 펄스 연출 강화 (`src/render/` 비네트 애니메이션)
+- [x] **Task 2.1: `INearMissEffect` 붉은 화면 + 심박 펄스 연출 강화 (`src/render/` 비네트 애니메이션)**
+  - 실제 구현: `src/render/NearMissVignetteRenderer.ts` 추가 — `NearMissVignetteAnimator` 가 프레임마다 `nearMissIntensity` 를 받아 페이드인 120ms(`NEAR_MISS_FX.fadeInMs`), 종료 후 300ms 페이드아웃을 만들고, `heartbeatPulse(phase)` 의 "lub-dub" 2단 박동이 비네트 밝기를 밀어 올린다. 심박 주기는 severity 0 에서 900ms → 1 에서 450ms 로 짧아진다(`heartbeatPeriodMs`).
+  - `drawNearMissVignette` 가 기존 `DangerLineRenderer` 의 정적 붉은 비네트를 대체해 레이디얼 그라디언트를 그린다(위험선 선 자체는 `drawDangerLine` 유지). 게임 오버에서는 `hold` 플래그로 비네트와 박동을 멈춘 채 유지한다(GDD 3.3).
+  - `CanvasRenderer` 는 주입 가능한 `Clock`(기본 `performance.now`)로 프레임 dt 를 계산해 애니메이터를 진행하고, 클립 안에서 공 뒤 · 카드 오버레이/HUD 아래에 비네트를 합성한다.
+  - 상수는 `src/config/gameConfig.ts` 의 `NEAR_MISS_FX` 블록, 비네트 색은 `src/render/palette.ts` 의 `nearMissVignetteRgb` 로 이동(매직 넘버 금지 규칙).
+  - 테스트 추가: `tests/nearMissVignette.test.ts` 11건 — 심박 주기·클램프, 펄스 0..1·사이클 랩, lub-dub 두 봉우리, 페이드인/페이드아웃 타이밍, 게임 오버 hold, severity 별 심박 속도 차이, 페이드아웃 중 박동 유지, 스텁 ctx 드로잉 3건(그라디언트 정지색·프레임 크기·알파 0 무그림).
 - [ ] Task 2.2: `IRoundSystem` 기본 구현 (라운드별 목표 점수, 클리어 시 카드 보상)
 - [ ] Task 2.3: `ISpecialBall` 폭탄 공 (인접 공 제거) 구현과 스폰 확률 설정
 - [ ] Task 2.4: `ISaveSystem` localStorage 구현 (베스트 점수, 총 런 수)
