@@ -41,7 +41,8 @@ function estimateTextWidth(text: string, fontSize: number): number {
 
 /**
  * Resolves the SCORE line for the current score (HUD defect fix, PR #19
- * follow-up). Two guards keep the score clear of the NEXT preview ball:
+ * follow-up). The block is centred on `HUD_LAYOUT.score.anchorX` (the board's
+ * vertical axis), and two guards keep it clear of the NEXT preview ball:
  *
  * 1. From `shrinkThresholdDigits` digits the font shrinks linearly from
  *    `maxFontSize` down to `minFontSize`, pinned at the minimum from
@@ -61,7 +62,7 @@ export function resolveScoreLayout(score: number, measure: TextMeasurer): ScoreT
   const width = measure(text, fontSize);
   const nextLeftEdge = BOARD.width / 2 + HUD_LAYOUT.next.offsetX - HUD_LAYOUT.next.previewRadius;
   const maxRightEdge = nextLeftEdge - minGapToNext;
-  let centerX = BOARD.width / 2;
+  let centerX = HUD_LAYOUT.score.anchorX;
   if (centerX + width / 2 > maxRightEdge) {
     centerX = maxRightEdge - width / 2;
   }
@@ -153,7 +154,7 @@ export function drawHud(
       : estimateTextWidth(text, fontSize);
   });
   ctx.save();
-  ctx.textAlign = 'center';
+  ctx.textAlign = HUD_LAYOUT.score.align;
   ctx.textBaseline = 'top';
   ctx.fillStyle = PALETTE.text.secondary;
   ctx.font = `${medium} ${caption}px ${FONT}`;

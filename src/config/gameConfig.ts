@@ -308,6 +308,10 @@ export const HUD_LAYOUT = {
    * two can never overlap no matter how big the score gets.
    */
   score: {
+    /** SCORE is centred on the board's vertical axis, never left-aligned. */
+    align: 'center',
+    /** Board x the score is centred on — the board's centre (480 / 2). */
+    anchorX: 240,
     labelY: DESIGN.space.sm,
     valueY: DESIGN.space.sm + DESIGN.fontSize.caption + DESIGN.space.xs,
     /** Score value font while it fits (below `shrinkThresholdDigits`). */
