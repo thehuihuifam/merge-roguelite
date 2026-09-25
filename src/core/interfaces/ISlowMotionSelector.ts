@@ -20,4 +20,10 @@ export interface ISlowMotionSelector {
   onCardChosen(card: MergeCard, merge: MergeEvent): void;
   /** Called when the slow-motion window expires without a choice. */
   onTimeout(merge: MergeEvent): MergeCard | null;
+  /**
+   * Hands the selector a choice that did not come from `onMergeMoment`
+   * (round-clear rewards, Task 2.13) so `onTimeout` can fall back to one of
+   * the shown cards. Selectors that do not track hands ignore it.
+   */
+  offerCards?(merge: MergeEvent, cards: readonly MergeCard[]): void;
 }

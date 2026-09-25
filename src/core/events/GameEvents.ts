@@ -10,7 +10,13 @@ export interface GameEventMap {
   'merge:resolved': MergeEvent;
   'bomb:spawned': { bomb: Ball };
   'bomb:contact': { bomb: Ball; other: Ball };
-  'ball:detonated': { bombId: BallId; removedIds: readonly BallId[]; position: Vec2 };
+  'ball:detonated': {
+    bombId: BallId;
+    removedIds: readonly BallId[];
+    position: Vec2;
+    /** Flat blast score paid for the removed balls (field added by Task 2.14). */
+    scoreGained: number;
+  };
   'score:changed': { score: number; best: number; delta: number };
   'danger:nearMissEnter': NearMissSample;
   'danger:nearMissUpdate': NearMissSample;

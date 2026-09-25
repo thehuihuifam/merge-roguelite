@@ -43,6 +43,12 @@ export class CardSlowMotionSelector implements ISlowMotionSelector {
     this.offeredCards = [];
   }
 
+  offerCards(_merge: MergeEvent, cards: readonly MergeCard[]): void {
+    // Round-clear choices (Task 2.13) bypass onMergeMoment; remember the hand
+    // so onTimeout still falls back to a card the player was shown.
+    this.offeredCards = cards;
+  }
+
   onTimeout(merge: MergeEvent): MergeCard | null {
     // Normally the hand is the one drawn in onMergeMoment. Drawing a fresh one
     // keeps the fallback correct even if a timeout ever arrives without an

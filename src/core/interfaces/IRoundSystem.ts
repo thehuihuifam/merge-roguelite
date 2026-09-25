@@ -6,6 +6,19 @@ export interface RoundDefinition {
   readonly dropBudget: number;
 }
 
+/**
+ * Read-only view of the current round for the HUD (Task 2.12).
+ * `scoreProgress` is the points banked since the round began (>= 0);
+ * `dropsUsed` counts the drops spent inside the current round.
+ */
+export interface RoundHudState {
+  readonly index: number;
+  readonly targetScore: number;
+  readonly scoreProgress: number;
+  readonly dropsUsed: number;
+  readonly dropBudget: number;
+}
+
 /** Roguelite structure: runs are split into rounds with score targets and rewards. */
 export interface IRoundSystem {
   currentRound(): RoundDefinition;
@@ -17,4 +30,9 @@ export interface IRoundSystem {
   isDropBudgetExhausted(): boolean;
   advance(): RoundDefinition;
   reset(): void;
+  /**
+   * HUD snapshot of the current round, when the implementation tracks one
+   * (field added by Task 2.12). Absent means \"no round display\".
+   */
+  getHudState?(): RoundHudState;
 }

@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.12
+Active Next Action: 없음 — 백로그 소진, 다음 세션은 AGENTS.md 4.11 백로그 제안 모드
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.11 완료 — 키보드 카드 선택
+- 마지막 갱신: Task 2.14 완료 — 폭탄 폭발 득점 보상
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -113,9 +113,22 @@ Active Next Action: Task 2.12
   - `PointerInput` 이 상단 숫자열과 숫자패드의 1/2/3 키를 0/1/2 카드 인덱스로 전달한다. 실제 카드 선택에 성공했을 때만 기본 동작을 막고, Ctrl/Alt/Meta/Shift 조합 단축키는 가로채지 않는다.
   - `createApp.ts` 의 공통 `choosePendingCard` 가 마우스/터치와 키보드 선택을 모두 `game.chooseCard` 로 연결하고, 성공 시 카드 선택 효과음을 낸다.
   - 테스트 추가: `tests/pointerInput.test.ts` 3건 — 숫자열/숫자패드 인덱스 매핑, 선택 실패 시 기본 동작 유지, 수정키 단축키 비간섭.
-- [ ] Task 2.12: 라운드 HUD 표시(라운드 번호 · 목표 진행도 · 남은 드롭) — 지금은 라운드 진행이 테스트로만 관찰되고 화면에 나오지 않는다(Task 2.2 에서 발견). `GameSnapshot` 확장 여부와 함께 착수 시 세부 스펙을 먼저 쪼갠다.
-- [ ] Task 2.13: 라운드 클리어 보상을 자동 지급 대신 카드 선택지로 — 지금은 `RoundRunner` 가 `createRoundClearRewardCard` 를 즉시 apply 해 버려 플레이어의 선택이 없다(Task 2.2 에서 발견). 슬로우모션 카드 선택 플로우 재활용을 검토한다.
-- [ ] Task 2.14: 폭탄 폭발 득점 보상 설계 — 지금은 제거만 하고 점수가 없어, 큰 공을 지울수록 손해로 느껴질 수 있다(Task 2.3 에서 발견). 제거된 공 값의 일정 비율 지급 등을 GDD 와 함께 결정한다.
+- [x] **Task 2.12: 라운드 HUD 표시(라운드 번호 · 목표 진행도 · 남은 드롭)**
+  - `src/core/interfaces/IRoundSystem.ts` 에 `RoundHudState`(index/targetScore/scoreProgress/dropsUsed/dropBudget)와 선택 필드 `getHudState?()` 추가(인터페이스 확장 규칙 준수). `BasicRoundSystem` 이 실구현(진행도는 라운드 시작점 델타, 0 하한 클램프), `RoundRunner.getHudState()` 가 위임하며 HUD 미지원 구 시스템에는 `null` 반환.
+  - `GameSnapshot` 에 선택 필드 `round?: RoundHudState` 추가 — `Game` 은 손대지 않고 `createApp.ts` 렌더 단계에서 `{ ...game.getSnapshot(), round }` 로 합성해 코어가 라운드 구조를 모르게 유지(경계 준수).
+  - `HudRenderer.drawHud` 가 `round` 존재 시 좌측 컬럼 BEST 아래에 `ROUND n · m DROPS` + `진행도 / 목표` 2행을 텍스트로 표시(위험선 y=120과 4px 이상 간격). `docs/GDD.md` 4절과 `docs/ARCHITECTURE.md` 라운드 행 갱신.
+  - 테스트 추가: `tests/roundHud.test.ts` 9건 — 상태 조회(초기/추적/어드밴스/음수 클램프), Runner 위임·구버전 null, 그리기 3건(표시·드롭 0 클램프·미표시 시 기존 HUD 유지).
+- [x] **Task 2.13: 라운드 클리어 보상을 자동 지급 대신 카드 선택지로**
+  - `Game.openRewardChoice(cards)` 추가 — 머지 선택과 같은 `slowmo_select`·오버레이·포인터/1-2-3 입력·400ms(`SLOW_MOTION`) 타임아웃을 재사용하는 합성 머지 기반 선택창. 바쁘거나(`mergeMoment` 불가) 빈 패면 `false`.
+  - `ISlowMotionSelector` 에 선택 필드 `offerCards?(merge, cards)` 추가, `CardSlowMotionSelector` 가 제시 패를 기억해 타임아웃이 화면에 보인 비-리스크 카드를 고르게 했다(라운드 패는 전부 reward라 선두 `+N점` 확정).
+  - `createRoundClearChoice(round)` 신설 — `+N점` + `SCORE ×2` 2회 + `SCORE ×3` 1회(기존 팩토리 재사용). `RoundRunner` 생성자가 `rewardFor` 단일 카드에서 `choiceFor` 패로 바뀌고, 클리어 시 선택 오픈+즉시 어드밴스(고른 보상은 새 라운드 소득), 선택 중 추가 지급은 `choosing` 가드로 대기 후 `time:slowMotionEnd` 재확인, 보드 busy 시 선두 카드 즉시 지급 폴백, 빈 패면 무보상 어드밴스.
+  - `docs/GDD.md` 4절(선택 규칙·새 라운드 합산·폴백)과 `docs/ARCHITECTURE.md` 슬로우모션/라운드 행 갱신.
+  - 테스트: `tests/roundRunner.test.ts` 전면 개편(선택 오픈·busy 폴백·예산 스킵·선택 중 대기 후 지급·빈 패·리셋·dispose·실Game 전체 루프) + `createRoundClearChoice` 1건, `tests/roundClearChoice.test.ts` 6건(Game 오픈/재개/거부 3건, 셀렉터 offerCards 3건). `roundHud.test.ts` fake Game 도 새 인터페이스에 맞춤.
+- [x] **Task 2.14: 폭탄 폭발 득점 보상 설계**
+  - 규칙(GDD 2.2와 함께 결정): 폭발 점수 = `round(제거된 공 티어 값 합 × SPECIAL_BALLS.blastScoreRatio(=0.5))`, 폭탄 자신 포함·연쇄/카드 배율 없는 flat 지급. `score:changed`를 거쳐 라운드 목표에도 합산된다.
+  - 순수 함수 `blastScore(victims, ratio)`를 `BombBallBehavior.ts`에 추가(비율 음수/NaN은 `RangeError`). `Game.detonate`가 제거 후 점수부터 적용하고(`score:changed`), `ball:detonated`에 `scoreGained` 필드(페이로드 확장)를 담아 발화 — 머지와 같은 발화 순서(점수→이벤트).
+  - `docs/GDD.md` 2.2절(폭발 점수 규칙)과 `docs/ARCHITECTURE.md` 특수공 행(`blastScore`, `scoreGained`, Task 2.14 완료) 갱신.
+  - 테스트: `tests/specialBalls.test.ts` 5건 — `blastScore` 순수 로직 4건(비율·반올림·0·예외)과 실Game 통합 1건(2폭탄 폭발의 정확한 점수·이벤트·`score:changed` 일치).
 
 ### Infra
 
