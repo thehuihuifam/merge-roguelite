@@ -12,6 +12,7 @@ import { OverflowDetector } from '@/core/danger/OverflowDetector';
 import { EventBus } from '@/core/events/EventBus';
 import { MergeResolver } from '@/core/merge/MergeResolver';
 import { SeededRandom } from '@/core/rng/SeededRandom';
+import { ModifierStack } from '@/core/score/ModifierStack';
 import { ScoreCalculator } from '@/core/score/ScoreCalculator';
 import { ScoreState } from '@/core/score/ScoreState';
 import { GameStateMachine } from '@/core/state/GameStateMachine';
@@ -106,6 +107,7 @@ export class Game {
   private readonly slowMo: ISlowMotionSelector;
   private readonly nearMiss: INearMissEffect;
   private readonly scoreCalculator = new ScoreCalculator();
+  private readonly modifierStack = new ModifierStack();
   private readonly scoreState: ScoreState;
   private readonly overflow: OverflowDetector;
   private readonly merges = new MergeResolver();
@@ -137,6 +139,9 @@ export class Game {
     this.slowMo = deps.slowMotionSelector ?? new NoopSlowMotionSelector();
     this.nearMiss = deps.nearMissEffect ?? new NoopNearMissEffect();
     this.scoreState = new ScoreState(deps.initialBest ?? 0);
+    // ModifierStack (Task 2.7) owns temporary multipliers; expose as a single
+    // IScoreModifier to ScoreCalculator so duration is managed in one place.
+    this.scoreCalculator.addModifier(this.modifierStack.asModifier());
     for (const modifier of deps.scoreModifiers ?? []) {
       this.scoreCalculator.addModifier(modifier);
     }
@@ -241,6 +246,7 @@ export class Game {
       return;
     }
     const gameDelta = this.time.advance(realDeltaMs);
+    this.modifierStack.update(gameDelta);
 
     if (this.fsm.is('slowmo_select')) {
       this.tickSlowMotionSelection(realDeltaMs);
@@ -305,6 +311,7 @@ export class Game {
     this.physics.clearBalls();
     this.overflow.reset();
     this.scoreState.resetRun();
+    this.modifierStack.clear();
     this.time.reset();
     this.heldTier = this.factory.rollSpawnTier();
     this.nextTier = this.factory.rollSpawnTier();
@@ -528,21 +535,8 @@ export class Game {
   }
 
   private pushTemporaryMultiplier(multiplier: number, remainingMerges: number): void {
-    let remaining = Math.max(1, Math.floor(remainingMerges));
-    const modifier: IScoreModifier = {
-      id: `temp-multiplier-${multiplier}-${this.time.gameTimeMs}`,
-      modify: (points: number): number => {
-        if (remaining <= 0) {
-          return points;
-        }
-        remaining -= 1;
-        if (remaining === 0) {
-          detach();
-        }
-        return points * multiplier;
-      },
-    };
-    const detach = this.scoreCalculator.addModifier(modifier);
+    const id = `temp-multiplier-${multiplier}-${this.time.gameTimeMs}-${this.modifierStack.activeCount}`;
+    this.modifierStack.push(id, multiplier, remainingMerges);
   }
 
   private updateNearMiss(sample: NearMissSample | null): void {

@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.4
+Active Next Action: Task 2.8
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.3 완료 — 폭탄 특수 공(첫 충돌 시 인접 공 제거)과 스폰 확률 설정
+- 마지막 갱신: Task 2.7 완료 — 배율 카드 지속 시간 관리 ModifierStack
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -77,10 +77,27 @@ Active Next Action: Task 2.4
   - 스폰 확률: `SPECIAL_BALLS.bombSpawnChance`(= 0.05)를 `BallFactory.rollSpawnSpecial()` 이 매 드롭에 굴린다. `Game` 에 `specialBalls`/`specialSpawnChance` 의존 선택 필드를 추가해 테스트가 확률 0/1로 고정할 수 있다. `Ball.special` 필드(선택)와 `HeldBall.special`/`GameSnapshot.nextSpecial`로 홀드·NEXT 미리보기까지 폭탄 표시(황색 테두리 + `✹`)가 붙는다.
   - 이벤트 추가: `bomb:spawned`, `bomb:contact`, `ball:detonated`(제거된 id 일괄 포함).
   - 테스트 추가: `tests/specialBalls.test.ts` 11건 — 행동/불변식/반경 검증, `blastVictims` 순수 로직 3건(반경 내 제거·접촉 공 강제 포함·스택 정리), 레지스트리 교체, 실제 Game 통합 4건(확률 1 폭탄 발급·이벤트, 확률 0 일반 공, 홀로 앉은 폭탄 미폭발, 첫 충돌 폭발로 보드 정리), `tests/ballFactory.test.ts` 3건(스폰 확률 경계·예외·특수 태그).
-- [ ] Task 2.4: `ISaveSystem` localStorage 구현 (베스트 점수, 총 런 수)
-- [ ] Task 2.5: `IParticleSystem` 머지 파티클 버스트
-- [ ] Task 2.6: `IAudioSystem` WebAudio 기반 효과음 (merge 피치는 티어에 비례)
-- [ ] Task 2.7: 배율 카드 확장 (`IScoreModifier` 를 지속 시간 기반으로 관리하는 `ModifierStack`)
+- [x] **Task 2.4: `ISaveSystem` localStorage 구현 (베스트 점수, 총 런 수)**
+  - 실제 구현: `src/systems/LocalStorageSaveSystem.ts` — `ISaveSystem` 구현. `StorageLike` 인터페이스 주입 가능(테스트는 `FakeStorage`), `window.localStorage` 가 없거나 예외면 메모리 폴백. 키 `merge-roguelite:save`, 버전 `1`(`SAVE` 상수). `load()` 는 JSON 파싱·형태 검증·버전 마이그레이션(구버전은 best/total/lastSeed 유지 후 버전만 승격), `save()` 는 정수 클램프·floor, `clear()` 는 removeItem. 모든 메서드는 try/catch 로 quota/접근 예외를 삼켜 게임이 계속 돌아가게 한다.
+  - 설정 추가: `src/config/gameConfig.ts` 에 `SAVE` 블록(키·버전) — 매직 스트링 금지.
+  - `createApp.ts` 연결: `LocalStorageSaveSystem` 생성 → `load()` 로 `initialBest` 를 `Game` 에 주입, `run:started` 에서 `lastSeed` 저장, `run:over` 에서 `bestScore = max(saved, best, score)` + `totalRuns++` 저장.
+  - 테스트 추가: `tests/saveSystem.test.ts` 8건 — 빈 저장소 기본값, round-trip, clear, invalid JSON 방어, 음수/float 클램프, 버전 불일치 마이그레이션, 예외 무시, 메모리 폴백.
+- [x] **Task 2.5: `IParticleSystem` 머지 파티클 버스트**
+  - 실제 구현: `src/systems/BasicParticleSystem.ts` — `IParticleSystem` 구현. `burst()` 는 kind·intensity 에 따라 개수 결정(`PARTICLES` 설정: merge 14, mergeMax 24, dropDust 8, dangerSpark 6), 랜덤 각도·속도·수명에 중력·드래그 적용, 최대 200개 cap. `update()` 는 수명 감소·이동·제거, `render()` 는 alpha 페이드 원형 드로잉.
+  - 설정 추가: `src/config/gameConfig.ts` 에 `PARTICLES` 블록(개수·수명·속도·지터·중력·드래그·크기·cap).
+  - 렌더 연결: `CanvasRenderer` 에 `particles?: IParticleSystem` 옵션 추가(정적 타입 `exactOptionalPropertyTypes` 대응), 클립 안에서 공 뒤·HUD 아래에 `particles.render(ctx)` 합성.
+  - `createApp.ts` 연결: `BasicParticleSystem` 생성 → `CanvasRenderer` 주입, `GameLoop` update 에서 `particles.update(stepMs)`, 이벤트 구독 `merge:resolved`(티어 색·chain 기반 intensity, max면 merge_max), `ball:dropped`(drop_dust), `ball:detonated`(폭발), `danger:nearMissEnter`(스파크, 공 위치 탐색).
+  - 테스트 추가: `tests/particleSystem.test.ts` 9건 — burst 생성, intensity 스케일, zero 무시, 수명 후 제거, 이동·clear·cap·render 스텁·모든 kind 지원.
+- [x] **Task 2.6: `IAudioSystem` WebAudio 기반 효과음 (merge 피치는 티어에 비례)**
+  - 실제 구현: `src/systems/WebAudioSystem.ts` — `IAudioSystem` 구현. `AudioContext` lazy 생성, 없으면 no-op(테스트/미지원 브라우저). `frequencyForMergeTier(tier, chain)` 가 `AUDIO` 설정(220Hz base, 티어당 2 semitone, chain당 0.8 semitone)으로 주파수 계산해 티어 비례 피치 구현. `play()` 는 short/long envelope(oscillator+gain), `merge_big` 은 두 배음, `game_over` 는 하강, `card_show`/`card_pick` 은 코드, `near_miss_loop` 는 loop voice map으로 지속음. `stop()` 은 loop 정지, `setMuted()` 는 masterGain 0 및 loop 정리.
+  - 설정 추가: `src/config/gameConfig.ts` 에 `AUDIO` 블록(baseFreq, semitonePerTier, chainSemitone, masterVolume, durations).
+  - `createApp.ts` 연결: `WebAudioSystem` 생성, 이벤트 구독 `merge:resolved`(tier/chain → frequencyForMergeTier → merge/merge_big), `ball:dropped`(drop), `ball:detonated`(merge_big), `danger:nearMissEnter`(near_miss_loop), `danger:nearMissExit`(stop), `time:slowMotionStart`(card_show), `run:over`(game_over+loop stop), `onSelect` 에서 choose 성공 시 card_pick.
+  - 테스트 추가: `tests/audioSystem.test.ts` 6건 — Node no-op 안전, muted 억제, frequency가 tier/chain에 비례 증가, null tier 처리, 모든 cue 타입 무예외.
+- [x] **Task 2.7: 배율 카드 확장 (`IScoreModifier` 를 지속 시간 기반으로 관리하는 `ModifierStack`)**
+  - 실제 구현: `src/core/score/ModifierStack.ts` — 남은 머지 수·시간 기반 지속 관리. `push(id, multiplier, remainingMerges, remainingMs?)` 가 엔트리 생성, `apply(points, ctx)` 가 삽입 순서대로 배율 적용 후 머지 카운터 1 감소·만료 제거, `update(deltaMs)` 가 시간 만료 처리, `asModifier()` 가 `ScoreCalculator` 에 주입할 단일 `IScoreModifier` 반환, `pushModifier()` 로 제네릭 modifier 확장 가능, `clear()`·`activeCount`·`detach` 지원.
+  - `Game` 리팩터: `ModifierStack` 소유, 생성자에서 `asModifier()` 를 `ScoreCalculator` 에 주입, `resetRun()` 에서 `clear()`, `update()` 에서 `modifierStack.update(gameDelta)`, `pushTemporaryMultiplier()` 가 `modifierStack.push()` 로 위임 — 기존 클로저 기반 임시 수정자를 스택으로 교체.
+  - `ARCHITECTURE.md` 확장 포인트 표 갱신: 점수 수정자·세이브·사운드·파티클·특수공 기본 구현을 실제 파일명으로 업데이트.
+  - 테스트 추가: `tests/modifierStack.test.ts` 9건 — 단일 배율, 남은 횟수 소진 만료, 다중 스택 곱, detach 조기 제거, clear, 시간 만료 update, asModifier 위임, invalid 인자 예외, Game-like 통합 흐름.
 - [ ] Task 2.8: 모바일 터치 QA 및 캔버스 리사이즈 회귀 테스트(jsdom 환경 도입 여부 결정)
 - [ ] Task 2.9: `MergeCardContext` 에 위험선 이동 필드 추가 후 `raise_danger_line` 카드를 실동작으로 연결 — 현재 이 카드는 점수 −50 만 적용하고 `severity` 0.5 만 들고 있어 보상이 없는 순수 페널티다(Task 1.2 에서 발견)
 - [ ] Task 2.10: 최대 티어 소멸(`resultTier === null`, 10,000점 보너스)에도 카드 선택창 열기 — 지금은 `CardSlowMotionSelector` 가 결과 티어가 있는 머지만 취급해서, 가장 화려한 합체가 선택 없이 지나간다(Task 1.3 에서 발견). `minResultTier` 판정에 `resultTier === null` 케이스를 추가하고 테스트 1건 보강.

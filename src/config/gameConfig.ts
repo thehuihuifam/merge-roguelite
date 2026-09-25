@@ -156,6 +156,56 @@ export const SPECIAL_BALLS = {
   bombBlastRadius: 90,
 } as const;
 
+/** Persistent save (Task 2.4). Key and version for localStorage. */
+export const SAVE = {
+  storageKey: 'merge-roguelite:save',
+  version: 1,
+} as const;
+
+/** Audio tuning (Task 2.6). Consumed by WebAudioSystem. */
+export const AUDIO = {
+  /** Base frequency for tier 0 merge, Hz. */
+  mergeBaseFreq: 220,
+  /** Semitone steps per tier (1 = one semitone). */
+  mergeFreqSemitonePerTier: 2,
+  /** Extra pitch per chain index, in semitones. */
+  mergeChainSemitone: 0.8,
+  /** Master volume 0..1. */
+  masterVolume: 0.35,
+  /** Duration of short SFX in ms. */
+  shortDurationMs: 180,
+  /** Duration of big merge / game over in ms. */
+  longDurationMs: 600,
+} as const;
+
+/** Particle burst tuning (Task 2.5). Consumed by BasicParticleSystem. */
+export const PARTICLES = {
+  /** How many particles a normal merge spawns at intensity 1. */
+  mergeCount: 14,
+  /** How many particles the max-tier vanish spawns. */
+  mergeMaxCount: 24,
+  /** Drop dust puff count. */
+  dropDustCount: 8,
+  /** Sparks near the danger line. */
+  dangerSparkCount: 6,
+  /** Base lifetime in ms. */
+  lifetimeMs: 500,
+  /** Lifetime jitter 0..1. */
+  lifetimeJitter: 0.35,
+  /** Initial speed in board units per 16ms step. */
+  speed: 3.5,
+  /** Speed jitter. */
+  speedJitter: 0.6,
+  /** Gravity applied to particles (board units per ms^2). */
+  gravity: 0.012,
+  /** Drag per ms (0..1). */
+  drag: 0.002,
+  /** Base size in board units. */
+  size: 3.2,
+  /** Max particle count to keep on screen (safety cap). */
+  maxAlive: 200,
+} as const;
+
 /** Chain bonus: each consecutive merge within one drop adds this fraction to the multiplier. */
 export const CHAIN_MULTIPLIER_STEP = 0.5;
 

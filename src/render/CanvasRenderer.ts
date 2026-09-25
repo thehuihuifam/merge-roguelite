@@ -6,12 +6,18 @@ import { drawGameOver, drawHeldBall, drawHud, drawIdle } from '@/render/HudRende
 import { NearMissVignetteAnimator, drawNearMissVignette } from '@/render/NearMissVignetteRenderer';
 import { PALETTE } from '@/render/palette';
 import type { GameSnapshot } from '@/core/Game';
+import type { IParticleSystem } from '@/core/interfaces/IParticleSystem';
 
 /** Wall-clock source driving the vignette animation between frames. */
 export type Clock = () => number;
 
 function defaultClock(): number {
   return performance.now();
+}
+
+export interface CanvasRendererOptions {
+  readonly clock?: Clock;
+  readonly particles?: IParticleSystem | undefined;
 }
 
 /**
@@ -22,19 +28,26 @@ export class CanvasRenderer {
   private readonly ctx: CanvasRenderingContext2D;
   private readonly vignette = new NearMissVignetteAnimator();
   private readonly clock: Clock;
+  private readonly particles: IParticleSystem | undefined;
   private lastFrameMs: number | null = null;
   private scale = 1;
 
   constructor(
     private readonly canvas: HTMLCanvasElement,
-    clock: Clock = defaultClock,
+    clockOrOptions: Clock | CanvasRendererOptions = defaultClock,
   ) {
     const ctx = canvas.getContext('2d');
     if (ctx === null) {
       throw new Error('2D canvas context is not available');
     }
     this.ctx = ctx;
-    this.clock = clock;
+    if (typeof clockOrOptions === 'function') {
+      this.clock = clockOrOptions;
+      this.particles = undefined;
+    } else {
+      this.clock = clockOrOptions.clock ?? defaultClock;
+      this.particles = clockOrOptions.particles ?? undefined;
+    }
     this.resize();
   }
 
@@ -90,6 +103,9 @@ export class CanvasRenderer {
     ctx.clip();
     drawDangerLine(ctx, snapshot.dangerLineY, snapshot.nearMissIntensity);
     drawBalls(ctx, snapshot.balls);
+    if (this.particles !== undefined) {
+      this.particles.render(ctx);
+    }
     drawHeldBall(ctx, snapshot, SPAWN_Y);
     const frameMs = this.clock();
     const deltaMs = this.lastFrameMs === null ? 0 : Math.max(0, frameMs - this.lastFrameMs);
