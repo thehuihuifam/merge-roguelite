@@ -68,7 +68,7 @@ describe('Game.openRewardChoice', () => {
     expect(game.state).toBe('dropping');
 
     expect(game.openRewardChoice(createRoundClearChoice(1))).toBe(true);
-    const steps = Math.ceil(SLOW_MOTION.durationMs / PHYSICS_STEP_MS);
+    const steps = Math.ceil(SLOW_MOTION.choiceTimeoutMs / PHYSICS_STEP_MS);
     for (let i = 0; i < steps; i += 1) {
       game.update(PHYSICS_STEP_MS);
     }

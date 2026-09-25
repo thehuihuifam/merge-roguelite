@@ -162,7 +162,7 @@ describe('CardSlowMotionSelector', () => {
       const scoreBeforeTimeout = game.score;
       for (
         let step = 0;
-        step < Math.ceil(SLOW_MOTION.durationMs / PHYSICS_STEP_MS) + 4;
+        step < Math.ceil(SLOW_MOTION.choiceTimeoutMs / PHYSICS_STEP_MS) + 4;
         step += 1
       ) {
         game.update(PHYSICS_STEP_MS);

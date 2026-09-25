@@ -63,6 +63,7 @@ export const MAX_SUBSTEPS_PER_FRAME = 5;
 /** Slow-motion parameters used by the merge-moment extension point. */
 export const SLOW_MOTION = {
   durationMs: 400,
+  choiceTimeoutMs: 2500,
   timeScale: 0.25,
   cardCount: 3,
   riskCardCount: 1,

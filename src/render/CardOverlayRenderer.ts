@@ -74,7 +74,7 @@ export function drawCardOverlay(ctx: CanvasRenderingContext2D, cards: readonly M
   ctx.fillStyle = PALETTE.textMuted;
   ctx.font = `600 13px ${FONT}`;
   ctx.fillText(
-    `Tap a card — ${SLOW_MOTION.durationMs}ms and a safe card is picked for you`,
+    `Tap a card — ${SLOW_MOTION.choiceTimeoutMs}ms and a safe card is picked for you`,
     BOARD.width / 2,
     CARD_OVERLAY.headerY + 34,
   );
