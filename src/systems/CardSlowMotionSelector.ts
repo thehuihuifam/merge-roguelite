@@ -5,10 +5,10 @@ import type { ISlowMotionSelector, SlowMotionRequest } from '@/core/interfaces/I
 import type { MergeEvent } from '@/core/types';
 
 /**
- * First real `ISlowMotionSelector` (Task 1.3): every merge that produces at
- * least `SLOW_MOTION.minResultTier` freezes the run into `slowmo_select` and
- * offers a hand of cards from the injected `IMergeCardProvider`. The provider
- * guarantees the hand holds exactly `SLOW_MOTION.riskCardCount` risk cards.
+ * First real `ISlowMotionSelector` (Task 1.3): ordinary merges that produce at
+ * least `SLOW_MOTION.minResultTier` and max-tier annihilations freeze the run
+ * into `slowmo_select` and offer cards from the injected `IMergeCardProvider`.
+ * The provider guarantees exactly `SLOW_MOTION.riskCardCount` risk cards.
  *
  * The hand drawn for the current merge is remembered so `onTimeout` can pick
  * from the very cards the player was looking at instead of drawing a new hand.
@@ -57,10 +57,10 @@ export class CardSlowMotionSelector implements ISlowMotionSelector {
   }
 
   /**
-   * Small merges (and the max-tier annihilation, which has no result tier) are
-   * too frequent to interrupt; only tier 2 (value 8) and up open the choice.
+   * Small merges are too frequent to interrupt; tier 2 (value 8) and up qualify.
+   * A null result tier is the max-tier annihilation and always opens a choice.
    */
   private static isBigEnough(merge: MergeEvent): boolean {
-    return merge.resultTier !== null && merge.resultTier >= SLOW_MOTION.minResultTier;
+    return merge.resultTier === null || merge.resultTier >= SLOW_MOTION.minResultTier;
   }
 }

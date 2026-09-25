@@ -67,8 +67,9 @@ export const SLOW_MOTION = {
   cardCount: 3,
   riskCardCount: 1,
   /**
-   * Minimum tier of the merged ball that opens the card choice (tier 2 = value
-   * 8). Keeps the choice rare enough to stay exciting: roughly 2–4 per minute.
+   * Minimum tier of an ordinary merged ball that opens the card choice
+   * (tier 2 = value 8). Max-tier annihilations have no result tier and qualify
+   * independently of this threshold.
    */
   minResultTier: 2,
 } as const;

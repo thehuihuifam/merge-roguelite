@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.10
+Active Next Action: Task 2.11
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.9 완료 — 위험선 이동 리스크 카드 실동작
+- 마지막 갱신: Task 2.10 완료 — 최대 티어 소멸에도 카드 선택
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -106,7 +106,9 @@ Active Next Action: Task 2.10
   - `MergeCardContext.shiftDangerLine(deltaY)` 추가(양수 = 화면 아래 방향), `Game` 에서 `OverflowDetector` 로 위임. detector 의 위험선은 보드 범위로 제한하고 런 reset 시 생성 당시 기준선으로 복원한다.
   - `raise_danger_line` 은 설정값 기준 −50점 + 위험선 아래로 30 보드 단위 이동 + 다음 머지 ×4 1회로 작동한다. 설명과 수치는 `MERGE_CARDS`, 규칙은 `docs/GDD.md` 에 기록.
   - 테스트 보강: 카드 컨텍스트 효과와 실제 Game 선택 통합, `OverflowDetector` 위험선 이동에 따른 판정/보드 경계/초기화 검증. `docs/ARCHITECTURE.md` 확장 포인트 갱신.
-- [ ] Task 2.10: 최대 티어 소멸(`resultTier === null`, 10,000점 보너스)에도 카드 선택창 열기 — 지금은 `CardSlowMotionSelector` 가 결과 티어가 있는 머지만 취급해서, 가장 화려한 합체가 선택 없이 지나간다(Task 1.3 에서 발견). `minResultTier` 판정에 `resultTier === null` 케이스를 추가하고 테스트 1건 보강.
+- [x] **Task 2.10: 최대 티어 소멸(`resultTier === null`, 10,000점 보너스)에도 카드 선택창 열기**
+  - `CardSlowMotionSelector` 는 일반 머지의 `minResultTier` 기준을 유지하면서 `resultTier === null` 인 최대 티어 소멸은 항상 발동하도록 판정한다.
+  - 테스트 보강: 최대 티어 이벤트가 3장/리스크 1장 패를 열고 `+10000 PTS` 카드를 포함하며, 타임아웃도 제시된 비-리스크 카드 중 고르는지 확인. `docs/GDD.md` 와 아키텍처 표의 트리거 설명 갱신.
 - [ ] Task 2.11: 카드 선택 키보드 지원(1/2/3 키) — 지금은 포인터 `onSelect` 만 연결돼 있어 키보드 플레이어는 타임아웃에만 의존한다(Task 1.4 에서 발견). `PointerInput` 의 keydown 스위치에 숫자 키를 추가하고 `createApp.ts` 에서 인덱스 → `game.chooseCard` 로 연결.
 - [ ] Task 2.12: 라운드 HUD 표시(라운드 번호 · 목표 진행도 · 남은 드롭) — 지금은 라운드 진행이 테스트로만 관찰되고 화면에 나오지 않는다(Task 2.2 에서 발견). `GameSnapshot` 확장 여부와 함께 착수 시 세부 스펙을 먼저 쪼갠다.
 - [ ] Task 2.13: 라운드 클리어 보상을 자동 지급 대신 카드 선택지로 — 지금은 `RoundRunner` 가 `createRoundClearRewardCard` 를 즉시 apply 해 버려 플레이어의 선택이 없다(Task 2.2 에서 발견). 슬로우모션 카드 선택 플로우 재활용을 검토한다.

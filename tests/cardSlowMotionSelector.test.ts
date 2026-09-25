@@ -25,9 +25,24 @@ describe('CardSlowMotionSelector', () => {
     expect(selector.onMergeMoment(makeMerge(SLOW_MOTION.minResultTier - 1))).toBeNull();
   });
 
-  it('ignores the max-tier annihilation, which has no result tier', () => {
+  it('opens a card choice for the max-tier annihilation and its 10,000-point bonus', () => {
     const selector = new CardSlowMotionSelector(new BasicMergeCardProvider(new SeededRandom(1)));
-    expect(selector.onMergeMoment(makeMerge(null, 10000))).toBeNull();
+    const request = selector.onMergeMoment(makeMerge(null, 10000));
+
+    expect(request).not.toBeNull();
+    if (request === null) {
+      return;
+    }
+    expect(request.cards).toHaveLength(SLOW_MOTION.cardCount);
+    expect(request.cards.filter(isRiskCard)).toHaveLength(SLOW_MOTION.riskCardCount);
+    expect(request.cards.some((card) => card.title === '+10000 PTS')).toBe(true);
+
+    const timeoutPick = selector.onTimeout(makeMerge(null, 10000));
+    expect(timeoutPick).not.toBeNull();
+    expect(request.cards).toContain(timeoutPick);
+    if (timeoutPick !== null) {
+      expect(isRiskCard(timeoutPick)).toBe(false);
+    }
   });
 
   it('opens the choice with the configured hand and timing', () => {
