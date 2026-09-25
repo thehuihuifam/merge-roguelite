@@ -156,6 +156,12 @@ export const SPECIAL_BALLS = {
   bombBlastRadius: 90,
 } as const;
 
+/** Persistent save (Task 2.4). Key and version for localStorage. */
+export const SAVE = {
+  storageKey: 'merge-roguelite:save',
+  version: 1,
+} as const;
+
 /** Chain bonus: each consecutive merge within one drop adds this fraction to the multiplier. */
 export const CHAIN_MULTIPLIER_STEP = 0.5;
 

@@ -9,6 +9,7 @@ import { BasicRoundSystem } from '@/systems/BasicRoundSystem';
 import { BombBallBehavior } from '@/systems/special/BombBallBehavior';
 import { SpecialBallRegistry } from '@/systems/special/SpecialBallRegistry';
 import { CardSlowMotionSelector } from '@/systems/CardSlowMotionSelector';
+import { LocalStorageSaveSystem } from '@/systems/LocalStorageSaveSystem';
 import { RoundRunner } from '@/systems/RoundRunner';
 import { SlowMotionNearMissEffect } from '@/systems/SlowMotionNearMissEffect';
 import { BasicMergeCardProvider } from '@/systems/cards/BasicMergeCardProvider';
@@ -35,6 +36,9 @@ export function createApp(root: HTMLElement): App {
   const cardRandom = new SeededRandom(createSeed());
   const cardProvider = new BasicMergeCardProvider(cardRandom);
   const slowMotionSelector = new CardSlowMotionSelector(cardProvider);
+  // Persistent save (Task 2.4): best score, total runs, last seed.
+  const saveSystem = new LocalStorageSaveSystem();
+  const saved = saveSystem.load();
   // Special balls (Task 2.3): register after construction so behaviors can
   // announce their life-cycle on the game's event bus.
   const specialBalls = new SpecialBallRegistry();
@@ -43,10 +47,31 @@ export function createApp(root: HTMLElement): App {
     nearMissEffect: new SlowMotionNearMissEffect(time),
     slowMotionSelector,
     specialBalls,
+    initialBest: saved.bestScore,
   });
   specialBalls.register(new BombBallBehavior(game.events));
   game.events.on('run:started', ({ seed }) => {
     cardRandom.reseed(seed);
+    try {
+      const current = saveSystem.load();
+      saveSystem.save({ ...current, lastSeed: seed });
+    } catch {
+      // Ignore storage errors — game remains playable.
+    }
+  });
+  game.events.on('run:over', ({ score, best }) => {
+    try {
+      const current = saveSystem.load();
+      const newBest = Math.max(current.bestScore, best, score);
+      saveSystem.save({
+        version: current.version,
+        bestScore: newBest,
+        totalRuns: current.totalRuns + 1,
+        lastSeed: current.lastSeed,
+      });
+    } catch {
+      // Ignore storage errors.
+    }
   });
   // Roguelite rounds (Task 2.2): score targets, drop budget, clear-reward card.
   const roundRunner = new RoundRunner(

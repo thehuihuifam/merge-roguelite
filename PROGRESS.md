@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Active Next Action: Task 2.4
+Active Next Action: Task 2.5
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
 - 마지막 갱신: Task 2.3 완료 — 폭탄 특수 공(첫 충돌 시 인접 공 제거)과 스폰 확률 설정
@@ -77,7 +77,11 @@ Active Next Action: Task 2.4
   - 스폰 확률: `SPECIAL_BALLS.bombSpawnChance`(= 0.05)를 `BallFactory.rollSpawnSpecial()` 이 매 드롭에 굴린다. `Game` 에 `specialBalls`/`specialSpawnChance` 의존 선택 필드를 추가해 테스트가 확률 0/1로 고정할 수 있다. `Ball.special` 필드(선택)와 `HeldBall.special`/`GameSnapshot.nextSpecial`로 홀드·NEXT 미리보기까지 폭탄 표시(황색 테두리 + `✹`)가 붙는다.
   - 이벤트 추가: `bomb:spawned`, `bomb:contact`, `ball:detonated`(제거된 id 일괄 포함).
   - 테스트 추가: `tests/specialBalls.test.ts` 11건 — 행동/불변식/반경 검증, `blastVictims` 순수 로직 3건(반경 내 제거·접촉 공 강제 포함·스택 정리), 레지스트리 교체, 실제 Game 통합 4건(확률 1 폭탄 발급·이벤트, 확률 0 일반 공, 홀로 앉은 폭탄 미폭발, 첫 충돌 폭발로 보드 정리), `tests/ballFactory.test.ts` 3건(스폰 확률 경계·예외·특수 태그).
-- [ ] Task 2.4: `ISaveSystem` localStorage 구현 (베스트 점수, 총 런 수)
+- [x] **Task 2.4: `ISaveSystem` localStorage 구현 (베스트 점수, 총 런 수)**
+  - 실제 구현: `src/systems/LocalStorageSaveSystem.ts` — `ISaveSystem` 구현. `StorageLike` 인터페이스 주입 가능(테스트는 `FakeStorage`), `window.localStorage` 가 없거나 예외면 메모리 폴백. 키 `merge-roguelite:save`, 버전 `1`(`SAVE` 상수). `load()` 는 JSON 파싱·형태 검증·버전 마이그레이션(구버전은 best/total/lastSeed 유지 후 버전만 승격), `save()` 는 정수 클램프·floor, `clear()` 는 removeItem. 모든 메서드는 try/catch 로 quota/접근 예외를 삼켜 게임이 계속 돌아가게 한다.
+  - 설정 추가: `src/config/gameConfig.ts` 에 `SAVE` 블록(키·버전) — 매직 스트링 금지.
+  - `createApp.ts` 연결: `LocalStorageSaveSystem` 생성 → `load()` 로 `initialBest` 를 `Game` 에 주입, `run:started` 에서 `lastSeed` 저장, `run:over` 에서 `bestScore = max(saved, best, score)` + `totalRuns++` 저장.
+  - 테스트 추가: `tests/saveSystem.test.ts` 8건 — 빈 저장소 기본값, round-trip, clear, invalid JSON 방어, 음수/float 클램프, 버전 불일치 마이그레이션, 예외 무시, 메모리 폴백.
 - [ ] Task 2.5: `IParticleSystem` 머지 파티클 버스트
 - [ ] Task 2.6: `IAudioSystem` WebAudio 기반 효과음 (merge 피치는 티어에 비례)
 - [ ] Task 2.7: 배율 카드 확장 (`IScoreModifier` 를 지속 시간 기반으로 관리하는 `ModifierStack`)
