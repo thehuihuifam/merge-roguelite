@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROUNDS } from '@/config/gameConfig';
-import { Game } from '@/core/Game';
+import type { Game } from '@/core/Game';
 import { EventBus } from '@/core/events/EventBus';
 import { drawHud } from '@/render/HudRenderer';
 import { BasicRoundSystem } from '@/systems/BasicRoundSystem';
