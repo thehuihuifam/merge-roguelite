@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.15 — 앱 렌더 단계의 라운드 HUD 연결 복구
+Active Next Action: Task 2.16 — 큰 공 스폰 페널티 상태와 카드 컨텍스트 계약 추가
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: 2026-09-25 — 백로그 보충 전용 루프, Task 2.15~2.34 제안 (기능 구현 없음)
+- 마지막 갱신: Task 2.15 완료 — 앱 렌더 단계의 라운드 HUD 연결 복구
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## 이번 루프 기록 (2026-09-25)
@@ -151,10 +151,14 @@ Active Next Action: Task 2.15 — 앱 렌더 단계의 라운드 HUD 연결 복�
 
 공통: 아래 수치와 UI 문구는 제안이다. 구현 시 수치는 `src/config/gameConfig.ts`에 모으고, 인터페이스 확장은 `docs/ARCHITECTURE.md`, 규칙 변경은 `docs/GDD.md`, 미구현 항목 완료는 `CONTEXT.md`에 함께 반영한다. 기존 메서드 시그니처는 유지하고 선택 필드·새 구현·얇은 조립 연결만 추가한다. 각 태스크의 완료 기준에 더해 lint/typecheck/전체 테스트 통과가 필수다.
 
-- [ ] **Task 2.15: 앱 렌더 단계의 라운드 HUD 연결 복구**
+- [x] **Task 2.15: 앱 렌더 단계의 라운드 HUD 연결 복구**
   - 기존 수정: `src/app/createApp.ts`. 신규: `src/app/composeRoundSnapshot.ts`, `tests/composeRoundSnapshot.test.ts`.
   - 확장 방식: 기존 `IRoundSystem.getHudState` → `RoundRunner.getHudState()` 결과를 `GameSnapshot.round`에 합성하는 작은 순수 헬퍼를 추가하고 실제 렌더 콜백에서 사용한다. Task 2.12의 HUD/라운드 구현을 다시 만들지 않는다.
   - 완료 기준: 라운드 상태가 있으면 스냅샷에 포함되고 null이면 필드가 생략되며 원본은 불변인 테스트 통과. 화면에서 ROUND/목표/남은 드롭이 표시된다. 범위는 누락된 연결만, 10분.
+  - 실제 구현: `src/app/composeRoundSnapshot.ts` 추가 — `composeRoundSnapshot(snapshot, round)` 이 round 가 있으면 `{ ...snapshot, round }` 새 객체를, 없으면(`null`) 키 자체가 없는 원본 참조를 반환한다. `Game` 은 손대지 않아 코어는 라운드 구조를 계속 모른다.
+  - `createApp.ts` 의 `GameLoop.render` 가 `renderer.render(composeRoundSnapshot(game.getSnapshot(), roundRunner.getHudState()))` 로 합성한다. `RoundRunner` 는 생성 시점부터 `render` 클로저에서 참조되지만 프레임마다 호출되므로 정의 순서 문제가 없다.
+  - 테스트 추가: `tests/composeRoundSnapshot.test.ts` 5건 — 라운드 포함, 원본 불변·새 객체, null 시 필드 생략(참조 동일), 실제 `RoundRunner` + `BasicRoundSystem` 위임값, HUD 미지원 라운드 시스템의 null 폴백.
+  - 문서: `docs/ARCHITECTURE.md` 라운드 확장 포인트 행에 `composeRoundSnapshot` 합성 경로 명시.
 
 - [ ] **Task 2.16: 큰 공 스폰 페널티 상태와 카드 컨텍스트 계약 추가**
   - 신규: `src/core/ball/SpawnTierPenalty.ts`, `tests/spawnTierPenalty.test.ts`. 기존 수정: `src/core/interfaces/IMergeCard.ts`.

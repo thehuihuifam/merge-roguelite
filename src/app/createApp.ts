@@ -1,5 +1,6 @@
 import { BALL_TIERS, MAX_TIER } from '@/config/gameConfig';
 import { GameLoop } from '@/app/GameLoop';
+import { composeRoundSnapshot } from '@/app/composeRoundSnapshot';
 import { Game } from '@/core/Game';
 import { getTierSpec } from '@/core/ball/BallFactory';
 import { SeededRandom, createSeed } from '@/core/rng/SeededRandom';
@@ -212,7 +213,9 @@ export function createApp(root: HTMLElement): App {
       particles.update(stepMs);
     },
     render: (): void => {
-      renderer.render(game.getSnapshot());
+      // Round HUD (Task 2.12/2.15): the app composes the round state into the
+      // snapshot so the core never learns about the round structure.
+      renderer.render(composeRoundSnapshot(game.getSnapshot(), roundRunner.getHudState()));
     },
   });
 
