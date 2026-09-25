@@ -1,4 +1,4 @@
-import { BOARD, CARD_OVERLAY, FONT_STACK, SLOW_MOTION, TEXT } from '@/config/gameConfig';
+import { BOARD, CARD_OVERLAY, FONT_STACK, TEXT } from '@/config/gameConfig';
 import { isRiskCard } from '@/core/interfaces/IMergeCard';
 import { PALETTE } from '@/render/palette';
 import type { MergeCard } from '@/core/interfaces/IMergeCard';
@@ -73,11 +73,7 @@ export function drawCardOverlay(ctx: CanvasRenderingContext2D, cards: readonly M
   ctx.fillText(TEXT.chooseHeader, BOARD.width / 2, CARD_OVERLAY.headerY);
   ctx.fillStyle = PALETTE.textMuted;
   ctx.font = `600 13px ${FONT}`;
-  ctx.fillText(
-    TEXT.chooseSubtext(SLOW_MOTION.choiceTimeoutMs),
-    BOARD.width / 2,
-    CARD_OVERLAY.headerY + 34,
-  );
+  ctx.fillText(TEXT.chooseSubtext, BOARD.width / 2, CARD_OVERLAY.headerY + 34);
 
   const rects = cardRects(cards.length);
   cards.forEach((card, index) => {

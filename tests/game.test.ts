@@ -171,7 +171,18 @@ describe('Game', () => {
     const merge = dropUntilMerge(game, BOARD.width / 2);
     expect(merge).not.toBeNull();
     expect(reachedSelect).toBe(true);
-    expect(chosen).toHaveLength(1);
+    // The choice is unlimited: nothing is picked for the player, no matter
+    // how much real time passes.
+    advance(game, 5000);
+    expect(game.state).toBe('slowmo_select');
+    expect(chosen).toHaveLength(0);
+    const pending = game.getSnapshot().pendingCards[0];
+    expect(pending).not.toBeUndefined();
+    if (pending === undefined) {
+      return;
+    }
+    expect(game.chooseCard(pending)).toBe(true);
+    expect(chosen).toEqual([card]);
     expect(game.score).toBeGreaterThanOrEqual((merge?.scoreGained ?? 0) + 100);
   });
 

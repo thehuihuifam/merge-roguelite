@@ -18,7 +18,11 @@ export interface ISlowMotionSelector {
   onMergeMoment(merge: MergeEvent): SlowMotionRequest | null;
   /** Called when the player picks a card (or the timer picks for them). */
   onCardChosen(card: MergeCard, merge: MergeEvent): void;
-  /** Called when the slow-motion window expires without a choice. */
+  /**
+   * Called when a configured slow-motion choice window expires without a
+   * selection. With the default unlimited choice
+   * (`SLOW_MOTION.choiceTimeoutMs === null`) this never fires.
+   */
   onTimeout(merge: MergeEvent): MergeCard | null;
   /**
    * Hands the selector a choice that did not come from `onMergeMoment`

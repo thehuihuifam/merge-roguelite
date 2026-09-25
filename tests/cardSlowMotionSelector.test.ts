@@ -5,7 +5,9 @@ import { SeededRandom } from '@/core/rng/SeededRandom';
 import { isRiskCard } from '@/core/interfaces/IMergeCard';
 import { BasicMergeCardProvider } from '@/systems/cards/BasicMergeCardProvider';
 import { CardSlowMotionSelector } from '@/systems/CardSlowMotionSelector';
-import type { IMergeCardProvider } from '@/core/interfaces/IMergeCard';
+import type { PhysicsWorld } from '@/physics/PhysicsWorld';
+import type { Ball } from '@/core/types';
+import type { IMergeCardProvider, MergeCard } from '@/core/interfaces/IMergeCard';
 import type { MergeEvent } from '@/core/types';
 
 function makeMerge(resultTier: number | null, scoreGained = 16): MergeEvent {
@@ -36,13 +38,6 @@ describe('CardSlowMotionSelector', () => {
     expect(request.cards).toHaveLength(SLOW_MOTION.cardCount);
     expect(request.cards.filter(isRiskCard)).toHaveLength(SLOW_MOTION.riskCardCount);
     expect(request.cards.some((card) => card.title === '+10000 점')).toBe(true);
-
-    const timeoutPick = selector.onTimeout(makeMerge(null, 10000));
-    expect(timeoutPick).not.toBeNull();
-    expect(request.cards).toContain(timeoutPick);
-    if (timeoutPick !== null) {
-      expect(isRiskCard(timeoutPick)).toBe(false);
-    }
   });
 
   it('opens the choice with the configured hand and timing', () => {
@@ -67,35 +62,23 @@ describe('CardSlowMotionSelector', () => {
     expect(drawWith(2024)).toEqual(drawWith(2024));
   });
 
-  it('picks a non-risk card from the offered hand on timeout', () => {
+  it('never auto-picks while the choice is unlimited', () => {
+    expect(SLOW_MOTION.choiceTimeoutMs).toBeNull();
     const selector = new CardSlowMotionSelector(new BasicMergeCardProvider(new SeededRandom(7)));
     const request = selector.onMergeMoment(makeMerge(4));
     const offered = request?.cards ?? [];
     expect(offered).toHaveLength(SLOW_MOTION.cardCount);
 
-    const fallback = selector.onTimeout(makeMerge(4));
-
-    expect(fallback).not.toBeNull();
-    expect(fallback).not.toBeUndefined();
-    if (fallback === null || fallback === undefined) {
-      return;
-    }
-    expect(isRiskCard(fallback)).toBe(false);
-    expect(offered).toContain(fallback);
+    // The window never expires on its own, so the selector picks nothing.
+    expect(selector.onTimeout(makeMerge(4))).toBeNull();
   });
 
-  it('still refuses risk cards when a timeout arrives without a prior offer', () => {
+  it('returns no fallback pick when no offer was ever made', () => {
     const selector = new CardSlowMotionSelector(new BasicMergeCardProvider(new SeededRandom(11)));
-    const fallback = selector.onTimeout(makeMerge(5));
-
-    expect(fallback).not.toBeNull();
-    if (fallback === null) {
-      return;
-    }
-    expect(isRiskCard(fallback)).toBe(false);
+    expect(selector.onTimeout(makeMerge(5))).toBeNull();
   });
 
-  it('does not re-offer a hand that was already dismissed by a choice', () => {
+  it('offers a fresh hand after a choice dismissed the previous one', () => {
     const provider = new BasicMergeCardProvider(new SeededRandom(3));
     const selector = new CardSlowMotionSelector(provider);
     const merge = makeMerge(2);
@@ -107,10 +90,12 @@ describe('CardSlowMotionSelector', () => {
     }
 
     selector.onCardChosen(safe, merge);
+    expect(selector.onTimeout(merge)).toBeNull();
 
-    // The hand is gone, so the fallback draws a fresh one — still never a risk card.
-    expect(selector.onTimeout(merge)).not.toBeNull();
-    expect(selector.onTimeout(merge)).not.toBeUndefined();
+    // The next qualifying merge still draws and offers a new hand.
+    const next = selector.onMergeMoment(makeMerge(3));
+    expect(next).not.toBeNull();
+    expect(next?.cards).toHaveLength(SLOW_MOTION.cardCount);
   });
 
   it('never offers more cards than the provider can supply', () => {
@@ -121,7 +106,7 @@ describe('CardSlowMotionSelector', () => {
     expect(selector.onMergeMoment(makeMerge(9))).toBeNull();
   });
 
-  it('opens the card choice inside a real run and applies the timeout pick', () => {
+  it('opens the card choice inside a real run and waits for the player', () => {
     const selector = new CardSlowMotionSelector(new BasicMergeCardProvider(new SeededRandom(4242)));
     const game = new Game({ slowMotionSelector: selector });
     try {
@@ -159,18 +144,91 @@ describe('CardSlowMotionSelector', () => {
       expect(snapshot.pendingCards.filter(isRiskCard)).toHaveLength(SLOW_MOTION.riskCardCount);
       expect(snapshot.timeScale).toBe(SLOW_MOTION.timeScale);
 
-      const scoreBeforeTimeout = game.score;
-      for (
-        let step = 0;
-        step < Math.ceil(SLOW_MOTION.choiceTimeoutMs / PHYSICS_STEP_MS) + 4;
-        step += 1
-      ) {
+      // Far beyond the former auto-select window: the choice is still open.
+      const scoreBeforeWait = game.score;
+      for (let step = 0; step < Math.ceil(5000 / PHYSICS_STEP_MS); step += 1) {
+        game.update(PHYSICS_STEP_MS);
+      }
+      expect(game.state).toBe('slowmo_select');
+      expect(game.getSnapshot().pendingCards).toHaveLength(SLOW_MOTION.cardCount);
+      expect(game.score).toBe(scoreBeforeWait);
+
+      // The player takes as long as they want; the pick still applies.
+      const safe = game.getSnapshot().pendingCards.find((card) => !isRiskCard(card));
+      expect(safe).not.toBeUndefined();
+      if (safe === undefined) {
+        return;
+      }
+      expect(game.chooseCard(safe)).toBe(true);
+      expect(game.state).not.toBe('slowmo_select');
+      expect(game.getSnapshot().pendingCards).toHaveLength(0);
+    } finally {
+      game.dispose();
+    }
+  });
+
+  it('keeps the simulation running under the overlay during an unlimited wait', () => {
+    // A physics stand-in that records step deltas and keeps a dropped ball
+    // falling, so "background physics continues" is directly observable.
+    const stepDeltas: number[] = [];
+    const physics = {
+      addBall: (): void => {
+        return;
+      },
+      removeBall: (): void => {
+        return;
+      },
+      step: (deltaMs: number): void => {
+        stepDeltas.push(deltaMs);
+      },
+      sync: (balls: Iterable<Ball>): void => {
+        for (const ball of balls) {
+          ball.position = { x: ball.position.x, y: ball.position.y + 3 };
+          ball.velocity = { x: 0, y: 3 };
+        }
+      },
+      drainCollisions: (): [] => [],
+      clearBalls: (): void => {
+        return;
+      },
+      dispose: (): void => {
+        return;
+      },
+      maxSpeed: (): number => 3,
+    } as unknown as PhysicsWorld;
+
+    const hand: MergeCard[] = [
+      { id: 'wait-a', kind: 'reward', title: 'A', description: 'd', apply: (): void => {} },
+      { id: 'wait-b', kind: 'reward', title: 'B', description: 'd', apply: (): void => {} },
+      { id: 'wait-c', kind: 'reward', title: 'C', description: 'd', apply: (): void => {} },
+    ];
+    const game = new Game({ physics });
+    try {
+      game.start(7);
+      game.drop();
+      expect(game.openRewardChoice(hand)).toBe(true);
+      expect(game.state).toBe('slowmo_select');
+      expect(game.getSnapshot().timeScale).toBe(SLOW_MOTION.timeScale);
+
+      // The 400ms slow-motion visual effect expires, but the choice holds and
+      // physics keeps stepping behind the overlay.
+      stepDeltas.length = 0;
+      const yBefore = game.getSnapshot().balls[0]?.position.y ?? 0;
+      for (let step = 0; step < Math.ceil(1000 / PHYSICS_STEP_MS); step += 1) {
         game.update(PHYSICS_STEP_MS);
       }
 
-      expect(game.state).not.toBe('slowmo_select');
-      expect(game.getSnapshot().pendingCards).toHaveLength(0);
-      expect(game.score).toBeGreaterThanOrEqual(scoreBeforeTimeout);
+      expect(game.state).toBe('slowmo_select');
+      expect(game.getSnapshot().pendingCards).toHaveLength(3);
+      expect(game.getSnapshot().timeScale).toBe(1);
+      expect(stepDeltas.length).toBeGreaterThan(0);
+      expect(stepDeltas.every((delta) => delta > 0)).toBe(true);
+      // Slow motion ended after SLOW_MOTION.durationMs of real time, so later
+      // steps are full-size again — the game is not frozen by the open choice.
+      expect(stepDeltas.filter((delta) => delta === PHYSICS_STEP_MS).length).toBeGreaterThan(0);
+      // The dropped ball physically moved down the board under the overlay.
+      const yAfter = game.getSnapshot().balls[0]?.position.y ?? 0;
+      expect(yAfter).toBeGreaterThan(yBefore);
     } finally {
       game.dispose();
     }

@@ -145,7 +145,11 @@ export class Game {
   private nearMissActive = false;
   private pendingCards: readonly MergeCard[] = [];
   private pendingMerge: MergeEvent | null = null;
-  private slowMoTimerMs = 0;
+  /**
+   * Remaining real-time ms before the auto-select fires, or `null` while the
+   * choice is unlimited (`SLOW_MOTION.choiceTimeoutMs === null`).
+   */
+  private slowMoTimerMs: number | null = null;
   private resumeEvent: 'resumeAiming' | 'resumeDropping' = 'resumeAiming';
 
   constructor(deps: GameDependencies = {}) {
@@ -546,7 +550,10 @@ export class Game {
   }
 
   private tickSlowMotionSelection(realDeltaMs: number): void {
-    if (this.pendingMerge === null) {
+    // Unlimited choice (`SLOW_MOTION.choiceTimeoutMs === null`): the timer
+    // expiry logic is fully disabled — slowmo_select holds until the player
+    // picks a card, so background physics keeps running below the overlay.
+    if (this.pendingMerge === null || this.slowMoTimerMs === null) {
       return;
     }
     this.slowMoTimerMs = Math.max(0, this.slowMoTimerMs - realDeltaMs);
@@ -569,7 +576,7 @@ export class Game {
     }
     this.pendingCards = [];
     this.pendingMerge = null;
-    this.slowMoTimerMs = 0;
+    this.slowMoTimerMs = null;
     this.time.cancelSlowMotion();
   }
 

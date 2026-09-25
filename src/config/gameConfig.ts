@@ -60,10 +60,23 @@ export const PHYSICS_STEP_MS = 1000 / 60;
 /** Maximum physics sub-steps per frame, to avoid spiral of death on slow tabs. */
 export const MAX_SUBSTEPS_PER_FRAME = 5;
 
-/** Slow-motion parameters used by the merge-moment extension point. */
+/**
+ * Slow-motion parameters used by the merge-moment extension point.
+ */
 export const SLOW_MOTION = {
+  /**
+   * Length of the slow-motion visual effect (0.25x time scale), in real-time
+   * ms. Unrelated to how long the card choice waits: the choice itself has
+   * no time limit.
+   */
   durationMs: 400,
-  choiceTimeoutMs: 2500,
+  /**
+   * Auto-select timer for the card choice, in real-time ms — or `null` to
+   * disable the timeout entirely. `null` means the choice window stays open
+   * until the player picks a card; the game never chooses for them (an
+   * auto-closing choice window ruined the decision moment).
+   */
+  choiceTimeoutMs: null as number | null,
   timeScale: 0.25,
   cardCount: 3,
   riskCardCount: 1,
@@ -299,7 +312,8 @@ export const TEXT = {
   roundStatus: (index: number, dropsLeft: number): string => `라운드 ${index} · ${dropsLeft}개 남음`,
   scoreProgress: (progress: number, target: number): string =>
     `${progress.toLocaleString('ko-KR')} / ${target.toLocaleString('ko-KR')}`,
-  chooseSubtext: (ms: number): string => `카드를 터치하세요 — ${ms}ms 후 안전한 카드가 자동 선택됩니다`,
+  /** Card overlay hint: the choice has no time limit. */
+  chooseSubtext: '카드를 터치하세요 — 시간 제한 없음',
   spawnPenaltyDetail: (minTier: number, remaining: number): string =>
     `스폰 ≥${minTier} · ${remaining}개 남음`,
   scoreSummary: (score: string): string => `점수 ${score}`,
