@@ -12,6 +12,12 @@ export interface MergeCardContext {
   readonly pushScoreMultiplier: (multiplier: number, remainingMerges: number) => void;
   /** Shifts the danger line in board units; a positive delta moves it down. */
   readonly shiftDangerLine: (deltaY: number) => void;
+  /**
+   * Forces the next `count` new dispenser balls up to at least `minTier`
+   * (field added by Task 2.16, `spawn_larger_balls` penalty). Optional:
+   * hosts that do not implement it simply refuse such cards.
+   */
+  readonly raiseSpawnTierFloor?: (minTier: number, count: number) => void;
 }
 
 export interface MergeCard {
