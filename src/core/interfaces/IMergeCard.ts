@@ -10,6 +10,8 @@ export interface MergeCardContext {
   readonly addScore: (delta: number) => void;
   /** Registers a temporary multiplier applied to subsequent merges. */
   readonly pushScoreMultiplier: (multiplier: number, remainingMerges: number) => void;
+  /** Shifts the danger line in board units; a positive delta moves it down. */
+  readonly shiftDangerLine: (deltaY: number) => void;
 }
 
 export interface MergeCard {

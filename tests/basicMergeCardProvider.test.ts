@@ -28,11 +28,13 @@ interface RecordedContext {
   readonly context: MergeCardContext;
   readonly deltas: number[];
   readonly multipliers: Array<{ multiplier: number; uses: number }>;
+  readonly dangerLineShifts: number[];
 }
 
 function recordContext(currentScore: number): RecordedContext {
   const deltas: number[] = [];
   const multipliers: Array<{ multiplier: number; uses: number }> = [];
+  const dangerLineShifts: number[] = [];
   const context: MergeCardContext = {
     merge: mergeEvent,
     currentScore,
@@ -42,8 +44,11 @@ function recordContext(currentScore: number): RecordedContext {
     pushScoreMultiplier: (multiplier: number, remainingMerges: number): void => {
       multipliers.push({ multiplier, uses: remainingMerges });
     },
+    shiftDangerLine: (deltaY: number): void => {
+      dangerLineShifts.push(deltaY);
+    },
   };
-  return { context, deltas, multipliers };
+  return { context, deltas, multipliers, dangerLineShifts };
 }
 
 /**
@@ -178,22 +183,31 @@ describe('BasicMergeCardProvider risk cards', () => {
     expect(deltas).toEqual([-3]);
   });
 
-  it('charges the flat danger-line cost and carries its severity', () => {
-    const { context, deltas, multipliers } = recordContext(1000);
+  it('pays the danger-line cost, shifts the line and grants a ×4 merge', () => {
+    const { context, deltas, multipliers, dangerLineShifts } = recordContext(1000);
     const card = createRaiseDangerLineCard();
     card.apply(context);
 
     expect(card.penalty).toBe('raise_danger_line');
     expect(card.severity).toBe(MERGE_CARDS.dangerLineSeverity);
     expect(deltas).toEqual([-MERGE_CARDS.dangerLineScoreCost]);
-    expect(multipliers).toHaveLength(0);
+    expect(dangerLineShifts).toEqual([MERGE_CARDS.dangerLineShiftPx]);
+    expect(multipliers).toEqual([
+      { multiplier: MERGE_CARDS.dangerLineMultiplier, uses: MERGE_CARDS.dangerLineMultiplierUses },
+    ]);
+    expect(card.description).toContain(`×${MERGE_CARDS.dangerLineMultiplier}`);
   });
 
-  it('offers a bigger upside than the reward cards of the same hand', () => {
-    const risk = createScoreLossCard();
-    expect(risk.severity).toBeGreaterThan(0);
-    expect(risk.title).toContain(String(MERGE_CARDS.scoreLossMultiplier));
+  it('offers risk cards a bigger multiplier than the regular reward cards', () => {
+    const scoreLoss = createScoreLossCard();
+    const dangerLine = createRaiseDangerLineCard();
+
+    expect(scoreLoss.severity).toBeGreaterThan(0);
+    expect(scoreLoss.title).toContain(String(MERGE_CARDS.scoreLossMultiplier));
+    expect(dangerLine.severity).toBeGreaterThan(0);
+    expect(dangerLine.description).toContain(`×${MERGE_CARDS.dangerLineMultiplier}`);
     expect(MERGE_CARDS.scoreLossMultiplier).toBeGreaterThan(MERGE_CARDS.tripleMultiplier);
+    expect(MERGE_CARDS.dangerLineMultiplier).toBeGreaterThan(MERGE_CARDS.tripleMultiplier);
   });
 });
 
@@ -214,6 +228,8 @@ describe('BasicMergeCardProvider with Game', () => {
     riskId: string;
     before: number;
     after: number;
+    dangerLineBefore: number;
+    dangerLineAfter: number;
     offered: readonly MergeCard[];
   } {
     const provider = new BasicMergeCardProvider(new SeededRandom(deckSeed));
@@ -244,16 +260,27 @@ describe('BasicMergeCardProvider with Game', () => {
       throw new Error(`deck seed ${deckSeed} offered no risk card`);
     }
     const before = liveGame.score;
+    const dangerLineBefore = liveGame.getSnapshot().dangerLineY;
     expect(before).toBeGreaterThan(0);
     expect(liveGame.chooseCard(risk)).toBe(true);
-    return { riskId: risk.id, before, after: liveGame.score, offered };
+    return {
+      riskId: risk.id,
+      before,
+      after: liveGame.score,
+      dangerLineBefore,
+      dangerLineAfter: liveGame.getSnapshot().dangerLineY,
+      offered,
+    };
   }
 
-  it('charges the flat danger-line cost and resumes the run when that card is picked', () => {
-    const { riskId, before, after } = chooseRiskCardWith(4242);
+  it('moves the danger line and charges the cost when that risk card is picked', () => {
+    const { riskId, before, after, dangerLineBefore, dangerLineAfter } = chooseRiskCardWith(4242);
 
     expect(riskId).toBe(CARD_IDS.raiseDangerLine);
     expect(after).toBe(Math.max(0, before - MERGE_CARDS.dangerLineScoreCost));
+    expect(dangerLineAfter).toBe(
+      Math.min(BOARD.height, dangerLineBefore + MERGE_CARDS.dangerLineShiftPx),
+    );
     expect(game?.state).not.toBe('slowmo_select');
     expect(game?.getSnapshot().pendingCards).toHaveLength(0);
   });

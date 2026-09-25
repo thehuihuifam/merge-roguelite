@@ -67,8 +67,9 @@ export const SLOW_MOTION = {
   cardCount: 3,
   riskCardCount: 1,
   /**
-   * Minimum tier of the merged ball that opens the card choice (tier 2 = value
-   * 8). Keeps the choice rare enough to stay exciting: roughly 2–4 per minute.
+   * Minimum tier of an ordinary merged ball that opens the card choice
+   * (tier 2 = value 8). Max-tier annihilations have no result tier and qualify
+   * independently of this threshold.
    */
   minResultTier: 2,
 } as const;
@@ -90,12 +91,13 @@ export const MERGE_CARDS = {
   /** Risk: upside handed out after the score loss. */
   scoreLossMultiplier: 4,
   scoreLossMultiplierUses: 1,
-  /**
-   * Risk: flat score removed by the danger-line card. v0.1.0 cannot move the
-   * danger line yet (no `MergeCardContext` field for it), so the penalty is
-   * score only until Task 2.x adds one.
-   */
+  /** Risk: flat score removed by the danger-line card. */
   dangerLineScoreCost: 50,
+  /** Risk: move the danger line toward the balls, in board units. */
+  dangerLineShiftPx: 30,
+  /** Risk: multiplier granted after paying the danger-line penalty. */
+  dangerLineMultiplier: 4,
+  dangerLineMultiplierUses: 1,
   dangerLineSeverity: 0.5,
 } as const;
 

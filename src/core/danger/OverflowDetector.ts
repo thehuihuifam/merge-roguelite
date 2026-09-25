@@ -1,4 +1,5 @@
 import {
+  BOARD,
   DANGER_LINE_Y,
   OVERFLOW_GRACE_MS,
   RESTING_SPEED_THRESHOLD,
@@ -28,14 +29,16 @@ export interface OverflowDetectorOptions {
  * danger line and produces the near-miss sample used by the juice hooks.
  */
 export class OverflowDetector {
-  private readonly dangerLineY: number;
+  private readonly initialDangerLineY: number;
+  private dangerLineY: number;
   private readonly warningZoneHeight: number;
   private readonly graceMs: number;
   private readonly restingSpeed: number;
   private readonly timeAbove = new Map<BallId, number>();
 
   constructor(options: OverflowDetectorOptions = {}) {
-    this.dangerLineY = options.dangerLineY ?? DANGER_LINE_Y;
+    this.initialDangerLineY = options.dangerLineY ?? DANGER_LINE_Y;
+    this.dangerLineY = this.initialDangerLineY;
     this.warningZoneHeight = options.warningZoneHeight ?? WARNING_ZONE_HEIGHT;
     this.graceMs = options.graceMs ?? OVERFLOW_GRACE_MS;
     this.restingSpeed = options.restingSpeed ?? RESTING_SPEED_THRESHOLD;
@@ -43,6 +46,14 @@ export class OverflowDetector {
 
   get lineY(): number {
     return this.dangerLineY;
+  }
+
+  /** Shifts the danger line in board units; positive values move it down. */
+  shiftDangerLine(deltaY: number): void {
+    if (!Number.isFinite(deltaY)) {
+      throw new RangeError(`danger line shift must be finite, got ${deltaY}`);
+    }
+    this.dangerLineY = Math.min(BOARD.height, Math.max(0, this.dangerLineY + deltaY));
   }
 
   update(balls: readonly Ball[], deltaMs: number): OverflowReport {
@@ -91,6 +102,7 @@ export class OverflowDetector {
 
   reset(): void {
     this.timeAbove.clear();
+    this.dangerLineY = this.initialDangerLineY;
   }
 }
 
