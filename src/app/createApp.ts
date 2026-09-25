@@ -15,6 +15,7 @@ import { CardSlowMotionSelector } from '@/systems/CardSlowMotionSelector';
 import { LocalStorageSaveSystem } from '@/systems/LocalStorageSaveSystem';
 import { RoundRunner } from '@/systems/RoundRunner';
 import { SlowMotionNearMissEffect } from '@/systems/SlowMotionNearMissEffect';
+import { WebAudioSystem, frequencyForMergeTier } from '@/systems/WebAudioSystem';
 import { BasicMergeCardProvider } from '@/systems/cards/BasicMergeCardProvider';
 import { createRoundClearRewardCard } from '@/systems/cards/RoundClearRewardCard';
 import type { RoundDefinition } from '@/core/interfaces/IRoundSystem';
@@ -85,6 +86,8 @@ export function createApp(root: HTMLElement): App {
   );
   // Juice: merge particle bursts (Task 2.5).
   const particles = new BasicParticleSystem();
+  // Juice: audio SFX (Task 2.6) — WebAudio, merge pitch proportional to tier.
+  const audio = new WebAudioSystem();
   const renderer = new CanvasRenderer(canvas, { particles });
   game.events.on('merge:resolved', (merge) => {
     const tier = merge.resultTier;
@@ -96,6 +99,12 @@ export function createApp(root: HTMLElement): App {
       color,
       intensity,
     });
+    // Audio: pitch proportional to tier + chain.
+    if (tier === null) {
+      audio.play('merge_big', { pitch: frequencyForMergeTier(null, merge.chainIndex), volume: 0.9 });
+    } else {
+      audio.play('merge', { pitch: frequencyForMergeTier(tier, merge.chainIndex), volume: 0.7 });
+    }
   });
   game.events.on('ball:dropped', ({ ball }) => {
     const spec = getTierSpec(ball.tier);
@@ -105,6 +114,7 @@ export function createApp(root: HTMLElement): App {
       color: spec.color,
       intensity: 0.5,
     });
+    audio.play('drop', { volume: 0.5 });
   });
   game.events.on('ball:detonated', ({ position }) => {
     particles.burst({
@@ -113,6 +123,7 @@ export function createApp(root: HTMLElement): App {
       color: '#ffdd59',
       intensity: 1,
     });
+    audio.play('merge_big', { pitch: frequencyForMergeTier(null, 0), volume: 1 });
   });
   game.events.on('danger:nearMissEnter', (sample) => {
     const ball = game.getSnapshot().balls.find((b) => b.id === sample.ballId);
@@ -123,6 +134,17 @@ export function createApp(root: HTMLElement): App {
       color: '#ff4d6d',
       intensity: sample.severity,
     });
+    audio.play('near_miss_loop', { volume: 0.3 + sample.severity * 0.4 });
+  });
+  game.events.on('danger:nearMissExit', () => {
+    audio.stop('near_miss_loop');
+  });
+  game.events.on('time:slowMotionStart', () => {
+    audio.play('card_show', { volume: 0.6 });
+  });
+  game.events.on('run:over', () => {
+    audio.stop('near_miss_loop');
+    audio.play('game_over', { volume: 0.9 });
   });
   let lastAimX = Number.NaN;
 
@@ -162,7 +184,9 @@ export function createApp(root: HTMLElement): App {
       if (card === undefined) {
         return;
       }
-      game.chooseCard(card);
+      if (game.chooseCard(card)) {
+        audio.play('card_pick', { volume: 0.7 });
+      }
     },
     onRestart: (): void => {
       if (game.state === 'game_over' || game.state === 'idle') {

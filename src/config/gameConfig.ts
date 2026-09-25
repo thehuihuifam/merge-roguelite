@@ -162,6 +162,22 @@ export const SAVE = {
   version: 1,
 } as const;
 
+/** Audio tuning (Task 2.6). Consumed by WebAudioSystem. */
+export const AUDIO = {
+  /** Base frequency for tier 0 merge, Hz. */
+  mergeBaseFreq: 220,
+  /** Semitone steps per tier (1 = one semitone). */
+  mergeFreqSemitonePerTier: 2,
+  /** Extra pitch per chain index, in semitones. */
+  mergeChainSemitone: 0.8,
+  /** Master volume 0..1. */
+  masterVolume: 0.35,
+  /** Duration of short SFX in ms. */
+  shortDurationMs: 180,
+  /** Duration of big merge / game over in ms. */
+  longDurationMs: 600,
+} as const;
+
 /** Particle burst tuning (Task 2.5). Consumed by BasicParticleSystem. */
 export const PARTICLES = {
   /** How many particles a normal merge spawns at intensity 1. */

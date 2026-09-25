@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.6
+Active Next Action: Task 2.7
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.5 완료 — 머지 파티클 버스트 시스템과 렌더 연결
+- 마지막 갱신: Task 2.6 완료 — WebAudio 기반 효과음과 티어 비례 피치
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -88,7 +88,11 @@ Active Next Action: Task 2.6
   - 렌더 연결: `CanvasRenderer` 에 `particles?: IParticleSystem` 옵션 추가(정적 타입 `exactOptionalPropertyTypes` 대응), 클립 안에서 공 뒤·HUD 아래에 `particles.render(ctx)` 합성.
   - `createApp.ts` 연결: `BasicParticleSystem` 생성 → `CanvasRenderer` 주입, `GameLoop` update 에서 `particles.update(stepMs)`, 이벤트 구독 `merge:resolved`(티어 색·chain 기반 intensity, max면 merge_max), `ball:dropped`(drop_dust), `ball:detonated`(폭발), `danger:nearMissEnter`(스파크, 공 위치 탐색).
   - 테스트 추가: `tests/particleSystem.test.ts` 9건 — burst 생성, intensity 스케일, zero 무시, 수명 후 제거, 이동·clear·cap·render 스텁·모든 kind 지원.
-- [ ] Task 2.6: `IAudioSystem` WebAudio 기반 효과음 (merge 피치는 티어에 비례)
+- [x] **Task 2.6: `IAudioSystem` WebAudio 기반 효과음 (merge 피치는 티어에 비례)**
+  - 실제 구현: `src/systems/WebAudioSystem.ts` — `IAudioSystem` 구현. `AudioContext` lazy 생성, 없으면 no-op(테스트/미지원 브라우저). `frequencyForMergeTier(tier, chain)` 가 `AUDIO` 설정(220Hz base, 티어당 2 semitone, chain당 0.8 semitone)으로 주파수 계산해 티어 비례 피치 구현. `play()` 는 short/long envelope(oscillator+gain), `merge_big` 은 두 배음, `game_over` 는 하강, `card_show`/`card_pick` 은 코드, `near_miss_loop` 는 loop voice map으로 지속음. `stop()` 은 loop 정지, `setMuted()` 는 masterGain 0 및 loop 정리.
+  - 설정 추가: `src/config/gameConfig.ts` 에 `AUDIO` 블록(baseFreq, semitonePerTier, chainSemitone, masterVolume, durations).
+  - `createApp.ts` 연결: `WebAudioSystem` 생성, 이벤트 구독 `merge:resolved`(tier/chain → frequencyForMergeTier → merge/merge_big), `ball:dropped`(drop), `ball:detonated`(merge_big), `danger:nearMissEnter`(near_miss_loop), `danger:nearMissExit`(stop), `time:slowMotionStart`(card_show), `run:over`(game_over+loop stop), `onSelect` 에서 choose 성공 시 card_pick.
+  - 테스트 추가: `tests/audioSystem.test.ts` 6건 — Node no-op 안전, muted 억제, frequency가 tier/chain에 비례 증가, null tier 처리, 모든 cue 타입 무예외.
 - [ ] Task 2.7: 배율 카드 확장 (`IScoreModifier` 를 지속 시간 기반으로 관리하는 `ModifierStack`)
 - [ ] Task 2.8: 모바일 터치 QA 및 캔버스 리사이즈 회귀 테스트(jsdom 환경 도입 여부 결정)
 - [ ] Task 2.9: `MergeCardContext` 에 위험선 이동 필드 추가 후 `raise_danger_line` 카드를 실동작으로 연결 — 현재 이 카드는 점수 −50 만 적용하고 `severity` 0.5 만 들고 있어 보상이 없는 순수 페널티다(Task 1.2 에서 발견)
