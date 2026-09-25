@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Active Next Action: Task 2.15 — 앱 렌더 단계의 라운드 HUD 연결 복구
+Active Next Action: Task 2.16 — 큰 공 스폰 페널티 상태와 카드 컨텍스트 계약 추가
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
 - 마지막 갱신: 2026-09-25 — 백로그 보충 전용 루프, Task 2.15~2.34 제안 (기능 구현 없음)
@@ -151,10 +151,12 @@ Active Next Action: Task 2.15 — 앱 렌더 단계의 라운드 HUD 연결 복�
 
 공통: 아래 수치와 UI 문구는 제안이다. 구현 시 수치는 `src/config/gameConfig.ts`에 모으고, 인터페이스 확장은 `docs/ARCHITECTURE.md`, 규칙 변경은 `docs/GDD.md`, 미구현 항목 완료는 `CONTEXT.md`에 함께 반영한다. 기존 메서드 시그니처는 유지하고 선택 필드·새 구현·얇은 조립 연결만 추가한다. 각 태스크의 완료 기준에 더해 lint/typecheck/전체 테스트 통과가 필수다.
 
-- [ ] **Task 2.15: 앱 렌더 단계의 라운드 HUD 연결 복구**
+- [x] **Task 2.15: 앱 렌더 단계의 라운드 HUD 연결 복구**
   - 기존 수정: `src/app/createApp.ts`. 신규: `src/app/composeRoundSnapshot.ts`, `tests/composeRoundSnapshot.test.ts`.
   - 확장 방식: 기존 `IRoundSystem.getHudState` → `RoundRunner.getHudState()` 결과를 `GameSnapshot.round`에 합성하는 작은 순수 헬퍼를 추가하고 실제 렌더 콜백에서 사용한다. Task 2.12의 HUD/라운드 구현을 다시 만들지 않는다.
   - 완료 기준: 라운드 상태가 있으면 스냅샷에 포함되고 null이면 필드가 생략되며 원본은 불변인 테스트 통과. 화면에서 ROUND/목표/남은 드롭이 표시된다. 범위는 누락된 연결만, 10분.
+  - 실제 구현: `src/app/composeRoundSnapshot.ts` 추가 — `composeRoundSnapshot(snapshot, round)` 순수 함수. round 가 있으면 `{ ...snapshot, round }`, null 이면 `round` 필드를 제거한 객체(이미 없으면 원본 그대로)를 반환해 원본을 불변으로 유지. `createApp.ts` 렌더 콜백이 `RoundRunner.getHudState()` 를 합성하도록 연결 복구.
+  - 테스트 추가: `tests/composeRoundSnapshot.test.ts` 5건 — round 포함, null 시 필드 생략, 오래된 round 필드 제거, 원본 불변, 입력과 다른 새 객체 반환.
 
 - [ ] **Task 2.16: 큰 공 스폰 페널티 상태와 카드 컨텍스트 계약 추가**
   - 신규: `src/core/ball/SpawnTierPenalty.ts`, `tests/spawnTierPenalty.test.ts`. 기존 수정: `src/core/interfaces/IMergeCard.ts`.
