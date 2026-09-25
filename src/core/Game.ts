@@ -347,6 +347,9 @@ export class Game {
       pushScoreMultiplier: (multiplier: number, remainingMerges: number): void => {
         this.pushTemporaryMultiplier(multiplier, remainingMerges);
       },
+      shiftDangerLine: (deltaY: number): void => {
+        this.overflow.shiftDangerLine(deltaY);
+      },
     };
   }
 

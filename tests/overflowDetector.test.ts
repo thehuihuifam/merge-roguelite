@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { BOARD } from '@/config/gameConfig';
 import { getTierSpec } from '@/core/ball/BallFactory';
 import { OverflowDetector } from '@/core/danger/OverflowDetector';
 import type { Ball } from '@/core/types';
@@ -53,6 +54,43 @@ describe('OverflowDetector', () => {
     expect(report.nearMiss?.ballId).toBe(2);
     expect(report.nearMiss?.severity).toBeCloseTo(0.8);
     expect(report.nearMiss?.distanceToLine).toBeCloseTo(10);
+  });
+
+  it('moves the threshold down and applies overflow to balls now above it', () => {
+    const detector = new OverflowDetector(options);
+    const radius = getTierSpec(0).radius;
+    const stationary = ball(1, 0, lineY + radius + 5);
+
+    const beforeShift = detector.update([stationary], 500);
+    expect(beforeShift.overflow).toBe(false);
+    expect(beforeShift.nearMiss?.severity).toBeCloseTo(0.9);
+
+    detector.shiftDangerLine(30);
+    expect(detector.lineY).toBe(lineY + 30);
+    const afterShift = detector.update([stationary], 500);
+    expect(afterShift.overflow).toBe(true);
+    expect(afterShift.nearMiss?.severity).toBe(1);
+  });
+
+  it('clamps line movement to the board and rejects non-finite shifts', () => {
+    const detector = new OverflowDetector(options);
+
+    expect(() => detector.shiftDangerLine(Number.NaN)).toThrow(RangeError);
+    expect(() => detector.shiftDangerLine(Number.POSITIVE_INFINITY)).toThrow(RangeError);
+    detector.shiftDangerLine(BOARD.height * 2);
+    expect(detector.lineY).toBe(BOARD.height);
+    detector.shiftDangerLine(-BOARD.height * 2);
+    expect(detector.lineY).toBe(0);
+  });
+
+  it('restores the configured line after reset', () => {
+    const detector = new OverflowDetector(options);
+    detector.shiftDangerLine(25);
+    expect(detector.lineY).toBe(lineY + 25);
+
+    detector.reset();
+
+    expect(detector.lineY).toBe(lineY);
   });
 
   it('forgets balls that disappeared', () => {

@@ -28,7 +28,7 @@
 
 ### 2.2 에스컬레이션 (Escalation)
 
-공의 값은 2 → 4 → … → 2048 로 배가되고 반지름은 16 → 111 로 커진다. 큰 공은 점수도 크지만 보드 공간을 급격히 잠식하므로, 진행할수록 "더 큰 보상 × 더 큰 위험" 이 동시에 커진다. 위험선은 고정이지만 큰 공이 늘수록 실질 여유 공간은 줄어들어 난이도가 자연스럽게 상승한다. 최대 티어(2048) 두 개가 합쳐지면 두 공이 사라지고 10,000점 보너스를 주어, 후반의 목표를 "공간을 비우는 대형 이벤트" 로 만든다. 확장: `IRoundSystem` 은 라운드마다 목표 점수를 올려 명시적 에스컬레이션을 추가하고, 리스크 카드의 `raise_danger_line` 은 플레이어 스스로 난이도를 올리는 선택지가 된다.
+공의 값은 2 → 4 → … → 2048 로 배가되고 반지름은 16 → 111 로 커진다. 큰 공은 점수도 크지만 보드 공간을 급격히 잠식하므로, 진행할수록 "더 큰 보상 × 더 큰 위험" 이 동시에 커진다. 기본 위험선은 고정이지만, `raise_danger_line` 리스크 카드는 위험선을 아래로 밀어 플레이어가 직접 난이도를 올리게 한다. 큰 공이 늘수록 실질 여유 공간도 줄어들어 난이도가 자연스럽게 상승한다. 최대 티어(2048) 두 개가 합쳐지면 두 공이 사라지고 10,000점 보너스를 주어, 후반의 목표를 "공간을 비우는 대형 이벤트" 로 만든다. 확장: `IRoundSystem` 은 라운드마다 목표 점수를 올려 명시적 에스컬레이션을 더한다.
 
 폭탄 특수 공(Task 2.3)은 디스펜서가 `SPECIAL_BALLS.bombSpawnChance`(= 5%) 확률로 내주는 공이다. 머지하지 않는 대신 첫 충돌에 폭발해 자신, 닿은 공, 중심 기준 반경 `bombBlastRadius`(= 90px) 안의 공을 모두 제거한다(점수 없음 — 보드 정리 자체가 보상). 황색 테두리와 불꽃 기호로 표시된다.
 
@@ -53,7 +53,7 @@ v0.1.0 은 최소한의 juice 만 넣었다: 합체 시 새 공이 두 공의 �
 - 트리거: 합체가 해결된 직후 `ISlowMotionSelector.onMergeMoment(merge)` 가 호출된다. 구현체가 `SlowMotionRequest { durationMs, timeScale, cards }` 를 반환하면 발동, `null` 이면 무시. 기본 파라미터는 `SLOW_MOTION = { durationMs: 400, timeScale: 0.25, cardCount: 3, riskCardCount: 1 }`.
 - 시간: `TimeController.startSlowMotion` 으로 게임 시간이 0.25배가 된다. 물리는 계속 진행되므로 슬로우모션 중에도 공은 (느리게) 구른다. 실시간 400ms 동안 선택하지 않으면 `onTimeout(merge)` 가 대신 카드를 고르거나(`MergeCard` 반환) 아무 것도 적용하지 않는다(`null`).
 - 상태: `aiming` 또는 `dropping` 에서 `slowmo_select` 로 진입하고, 선택/타임아웃 후 진입 전 상태로 복귀한다(`resumeAiming` / `resumeDropping`). `slowmo_select` 중에는 드롭이 막힌다.
-- 카드 적용: `Game.chooseCard(card)` 가 `MergeCardContext { merge, currentScore, addScore, pushScoreMultiplier }` 를 넘겨 `card.apply` 를 실행한다.
+- 카드 적용: `Game.chooseCard(card)` 가 `MergeCardContext { merge, currentScore, addScore, pushScoreMultiplier, shiftDangerLine }` 를 넘겨 `card.apply` 를 실행한다. `shiftDangerLine(deltaY)` 는 보드 단위로 위험선을 움직이고, 양수는 화면 아래 방향이다.
 - v0.1.0 범위: 인터페이스, 상태 전이, 시간 배율, 컨텍스트, `NoopSlowMotionSelector` 까지. 카드 덱과 UI 는 Task 1.2~1.4.
 - 발동 빈도 가이드(v0.2.0): 티어 2(값 8) 이상 결과의 합체에서만 발동해 1분에 2~4회를 목표로 한다. 너무 잦으면 피로, 너무 드물면 잊힌다.
 
@@ -66,7 +66,7 @@ v0.1.0 은 최소한의 juice 만 넣었다: 합체 시 새 공이 두 공의 �
 - 타입: `RiskCard extends MergeCard { kind: 'risk'; penalty: RiskPenaltyKind; severity: number }`. `RiskPenaltyKind = 'score_loss' | 'spawn_larger_balls' | 'raise_danger_line'`.
 - 계약: `IMergeCardProvider.draw(merge, count, riskCount)` 는 정확히 `riskCount` 장의 리스크 카드를 포함해야 한다(테스트로 강제).
 - 설계 원칙: 리스크 카드의 보상은 같은 세트의 보상 카드보다 **눈에 띄게** 커야 한다(예: ×4 배율 vs ×2). 대가는 즉시 보이고 되돌릴 수 없어야 한다. `severity` 는 UI 강도(테두리 색, 흔들림)에 쓴다.
-- 페널티별 의미: `score_loss` 는 현재 점수의 일정 비율 차감, `spawn_larger_balls` 는 다음 N 회 스폰 티어 하한 상승(보드 압박), `raise_danger_line` 은 위험선을 아래로 이동(런의 남은 시간 단축). 후자 둘은 `MergeCardContext` 에 필드를 추가해 구현한다(기존 필드 제거 없음).
+- 페널티별 의미: `score_loss` 는 현재 점수의 일정 비율 차감, `spawn_larger_balls` 는 다음 N 회 스폰 티어 하한 상승(보드 압박), `raise_danger_line` 은 위험선을 아래로 이동(런의 남은 시간 단축)한다. `raise_danger_line` 은 50점을 지불하고 위험선을 30 보드 단위만큼 아래로 옮기는 대신 다음 머지에 ×4 배율을 준다. 값은 `MERGE_CARDS` 가 단일 진실이다. 두 이동형 페널티는 `MergeCardContext` 의 필드로 호스트에 위임한다(기존 필드 제거 없음).
 - v0.1.0 범위: 타입, 타입 가드 `isRiskCard`, 컨텍스트만.
 
 ### 3.3 근접 실패 연출 (Near-Miss Presentation)

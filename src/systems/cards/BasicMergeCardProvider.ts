@@ -76,11 +76,7 @@ export function createScoreLossCard(): RiskCard {
   };
 }
 
-/**
- * Risk: pay points now to push the danger line down. v0.1.0's
- * `MergeCardContext` has no way to move the line yet, so only the score cost is
- * applied; the line itself moves once Task 2.x adds the context field.
- */
+/** Risk: pay points to raise the danger line and earn a ×4 on the next merge. */
 export function createRaiseDangerLineCard(): RiskCard {
   return {
     id: CARD_IDS.raiseDangerLine,
@@ -88,9 +84,14 @@ export function createRaiseDangerLineCard(): RiskCard {
     penalty: 'raise_danger_line',
     severity: MERGE_CARDS.dangerLineSeverity,
     title: 'PRESSURE',
-    description: `Pay ${MERGE_CARDS.dangerLineScoreCost} points to push the danger line down.`,
+    description: `Pay ${MERGE_CARDS.dangerLineScoreCost} points to move the danger line down ${MERGE_CARDS.dangerLineShiftPx}px; next merge scores ×${MERGE_CARDS.dangerLineMultiplier}.`,
     apply: (context: MergeCardContext): void => {
       context.addScore(-MERGE_CARDS.dangerLineScoreCost);
+      context.shiftDangerLine(MERGE_CARDS.dangerLineShiftPx);
+      context.pushScoreMultiplier(
+        MERGE_CARDS.dangerLineMultiplier,
+        MERGE_CARDS.dangerLineMultiplierUses,
+      );
     },
   };
 }

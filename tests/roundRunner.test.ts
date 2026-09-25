@@ -29,6 +29,9 @@ function fakeContext(): { context: MergeCardContext; deltas: number[] } {
     pushScoreMultiplier: (): void => {
       return;
     },
+    shiftDangerLine: (): void => {
+      return;
+    },
   };
   return { context, deltas };
 }

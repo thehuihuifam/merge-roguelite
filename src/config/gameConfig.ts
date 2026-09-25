@@ -90,12 +90,13 @@ export const MERGE_CARDS = {
   /** Risk: upside handed out after the score loss. */
   scoreLossMultiplier: 4,
   scoreLossMultiplierUses: 1,
-  /**
-   * Risk: flat score removed by the danger-line card. v0.1.0 cannot move the
-   * danger line yet (no `MergeCardContext` field for it), so the penalty is
-   * score only until Task 2.x adds one.
-   */
+  /** Risk: flat score removed by the danger-line card. */
   dangerLineScoreCost: 50,
+  /** Risk: move the danger line toward the balls, in board units. */
+  dangerLineShiftPx: 30,
+  /** Risk: multiplier granted after paying the danger-line penalty. */
+  dangerLineMultiplier: 4,
+  dangerLineMultiplierUses: 1,
   dangerLineSeverity: 0.5,
 } as const;
 
