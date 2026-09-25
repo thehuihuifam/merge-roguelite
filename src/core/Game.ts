@@ -266,7 +266,7 @@ export class Game {
     });
     this.pendingCards = [...cards];
     this.pendingMerge = merge;
-    this.slowMoTimerMs = SLOW_MOTION.durationMs;
+    this.slowMoTimerMs = SLOW_MOTION.choiceTimeoutMs;
     this.resumeEvent = this.fsm.is('dropping') ? 'resumeDropping' : 'resumeAiming';
     this.slowMo.offerCards?.(merge, this.pendingCards);
     this.fsm.send('mergeMoment');
@@ -540,7 +540,7 @@ export class Game {
     });
     this.pendingCards = request.cards;
     this.pendingMerge = merge;
-    this.slowMoTimerMs = request.durationMs;
+    this.slowMoTimerMs = SLOW_MOTION.choiceTimeoutMs;
     this.resumeEvent = this.fsm.is('dropping') ? 'resumeDropping' : 'resumeAiming';
     this.fsm.send('mergeMoment');
   }
@@ -550,7 +550,7 @@ export class Game {
       return;
     }
     this.slowMoTimerMs = Math.max(0, this.slowMoTimerMs - realDeltaMs);
-    if (this.slowMoTimerMs > 0) {
+    if (this.slowMoTimerMs > 0.001) {
       return;
     }
     const merge = this.pendingMerge;

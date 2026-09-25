@@ -35,7 +35,7 @@ describe('CardSlowMotionSelector', () => {
     }
     expect(request.cards).toHaveLength(SLOW_MOTION.cardCount);
     expect(request.cards.filter(isRiskCard)).toHaveLength(SLOW_MOTION.riskCardCount);
-    expect(request.cards.some((card) => card.title === '+10000 PTS')).toBe(true);
+    expect(request.cards.some((card) => card.title === '+10000 점')).toBe(true);
 
     const timeoutPick = selector.onTimeout(makeMerge(null, 10000));
     expect(timeoutPick).not.toBeNull();
@@ -162,7 +162,7 @@ describe('CardSlowMotionSelector', () => {
       const scoreBeforeTimeout = game.score;
       for (
         let step = 0;
-        step < Math.ceil(SLOW_MOTION.durationMs / PHYSICS_STEP_MS) + 4;
+        step < Math.ceil(SLOW_MOTION.choiceTimeoutMs / PHYSICS_STEP_MS) + 4;
         step += 1
       ) {
         game.update(PHYSICS_STEP_MS);

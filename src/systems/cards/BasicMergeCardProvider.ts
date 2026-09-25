@@ -1,4 +1,4 @@
-import { MERGE_CARDS } from '@/config/gameConfig';
+import { MERGE_CARDS, TEXT } from '@/config/gameConfig';
 import { createSpawnLargerBallsCard } from '@/systems/cards/SpawnLargerBallsCard';
 import type {
   IMergeCardProvider,
@@ -23,8 +23,8 @@ export function createBonusScoreCard(points: number): MergeCard {
   return {
     id: CARD_IDS.bonusScore,
     kind: 'reward',
-    title: `+${points} PTS`,
-    description: 'Bank the points of this merge again.',
+    title: TEXT.bonusScoreTitle(points),
+    description: TEXT.bonusScoreDesc,
     apply: (context: MergeCardContext): void => {
       context.addScore(points);
     },
@@ -36,8 +36,8 @@ export function createDoubleMultiplierCard(): MergeCard {
   return {
     id: CARD_IDS.doubleMultiplier,
     kind: 'reward',
-    title: `SCORE ×${MERGE_CARDS.doubleMultiplier}`,
-    description: `Next ${MERGE_CARDS.doubleMultiplierUses} merges score double.`,
+    title: TEXT.doubleMultiplierTitle,
+    description: TEXT.doubleMultiplierDesc(MERGE_CARDS.doubleMultiplierUses),
     apply: (context: MergeCardContext): void => {
       context.pushScoreMultiplier(MERGE_CARDS.doubleMultiplier, MERGE_CARDS.doubleMultiplierUses);
     },
@@ -49,8 +49,8 @@ export function createTripleMultiplierCard(): MergeCard {
   return {
     id: CARD_IDS.tripleMultiplier,
     kind: 'reward',
-    title: `SCORE ×${MERGE_CARDS.tripleMultiplier}`,
-    description: 'Next merge scores triple.',
+    title: TEXT.tripleMultiplierTitle,
+    description: TEXT.tripleMultiplierDesc,
     apply: (context: MergeCardContext): void => {
       context.pushScoreMultiplier(MERGE_CARDS.tripleMultiplier, MERGE_CARDS.tripleMultiplierUses);
     },
@@ -64,8 +64,11 @@ export function createScoreLossCard(): RiskCard {
     kind: 'risk',
     penalty: 'score_loss',
     severity: MERGE_CARDS.scoreLossSeverity,
-    title: `GAMBLE ×${MERGE_CARDS.scoreLossMultiplier}`,
-    description: `Lose ${Math.round(MERGE_CARDS.scoreLossRatio * 100)}% of your score, then score ×${MERGE_CARDS.scoreLossMultiplier} once.`,
+    title: TEXT.gambleTitle(MERGE_CARDS.scoreLossMultiplier),
+    description: TEXT.gambleDesc(
+      Math.round(MERGE_CARDS.scoreLossRatio * 100),
+      MERGE_CARDS.scoreLossMultiplier,
+    ),
     apply: (context: MergeCardContext): void => {
       const lost = Math.round(context.currentScore * MERGE_CARDS.scoreLossRatio);
       context.addScore(-lost);
@@ -84,8 +87,12 @@ export function createRaiseDangerLineCard(): RiskCard {
     kind: 'risk',
     penalty: 'raise_danger_line',
     severity: MERGE_CARDS.dangerLineSeverity,
-    title: 'PRESSURE',
-    description: `Pay ${MERGE_CARDS.dangerLineScoreCost} points to move the danger line down ${MERGE_CARDS.dangerLineShiftPx}px; next merge scores ×${MERGE_CARDS.dangerLineMultiplier}.`,
+    title: TEXT.pressureTitle,
+    description: TEXT.pressureDesc(
+      MERGE_CARDS.dangerLineScoreCost,
+      MERGE_CARDS.dangerLineShiftPx,
+      MERGE_CARDS.dangerLineMultiplier,
+    ),
     apply: (context: MergeCardContext): void => {
       context.addScore(-MERGE_CARDS.dangerLineScoreCost);
       context.shiftDangerLine(MERGE_CARDS.dangerLineShiftPx);

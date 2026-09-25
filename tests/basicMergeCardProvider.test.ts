@@ -162,7 +162,7 @@ describe('BasicMergeCardProvider reward cards', () => {
     const card = createBonusScoreCard(24);
     expect(card.id).toBe(CARD_IDS.bonusScore);
     expect(card.kind).toBe('reward');
-    expect(card.title).toBe('+24 PTS');
+    expect(card.title).toBe('+24 점');
   });
 });
 

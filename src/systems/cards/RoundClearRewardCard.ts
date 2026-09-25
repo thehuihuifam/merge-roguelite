@@ -1,4 +1,4 @@
-import { ROUNDS } from '@/config/gameConfig';
+import { ROUNDS, TEXT } from '@/config/gameConfig';
 import {
   createDoubleMultiplierCard,
   createTripleMultiplierCard,
@@ -18,8 +18,8 @@ export function createRoundClearRewardCard(roundIndex: number): MergeCard {
   return {
     id: ROUND_CLEAR_CARD_ID,
     kind: 'reward',
-    title: `ROUND ${roundIndex} CLEAR`,
-    description: `Round bonus: +${points} points.`,
+    title: TEXT.roundClearTitle(roundIndex),
+    description: TEXT.roundClearDesc(points),
     apply: (context: MergeCardContext): void => {
       context.addScore(points);
     },

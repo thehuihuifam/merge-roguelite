@@ -86,8 +86,8 @@ describe('SpawnLargerBallsCard', () => {
     expect(card.kind).toBe('risk');
     expect(card.penalty).toBe('spawn_larger_balls');
     expect(isRiskCard(card)).toBe(true);
-    expect(card.description).toContain(`tier ${MERGE_CARDS.spawnLargerFloorTier}`);
-    expect(card.description).toContain(`${MERGE_CARDS.spawnLargerSpawns} spawns`);
+    expect(card.description).toContain(`${MERGE_CARDS.spawnLargerFloorTier}티어`);
+    expect(card.description).toContain(`${MERGE_CARDS.spawnLargerSpawns}개`);
     expect(card.description).toContain(`×${MERGE_CARDS.spawnLargerMultiplier}`);
   });
 

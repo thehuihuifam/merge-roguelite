@@ -1,9 +1,9 @@
-import { BOARD, CARD_OVERLAY, SLOW_MOTION } from '@/config/gameConfig';
+import { BOARD, CARD_OVERLAY, FONT_STACK, SLOW_MOTION, TEXT } from '@/config/gameConfig';
 import { isRiskCard } from '@/core/interfaces/IMergeCard';
 import { PALETTE } from '@/render/palette';
 import type { MergeCard } from '@/core/interfaces/IMergeCard';
 
-const FONT = "system-ui, -apple-system, 'Segoe UI', sans-serif";
+const FONT = FONT_STACK;
 
 /** A card's rectangle in board coordinates. Hit-testing and drawing share it. */
 export interface CardRect {
@@ -70,11 +70,11 @@ export function drawCardOverlay(ctx: CanvasRenderingContext2D, cards: readonly M
   ctx.textBaseline = 'top';
   ctx.fillStyle = PALETTE.text;
   ctx.font = `800 26px ${FONT}`;
-  ctx.fillText('CHOOSE', BOARD.width / 2, CARD_OVERLAY.headerY);
+  ctx.fillText(TEXT.chooseHeader, BOARD.width / 2, CARD_OVERLAY.headerY);
   ctx.fillStyle = PALETTE.textMuted;
   ctx.font = `600 13px ${FONT}`;
   ctx.fillText(
-    `Tap a card — ${SLOW_MOTION.durationMs}ms and a safe card is picked for you`,
+    TEXT.chooseSubtext(SLOW_MOTION.choiceTimeoutMs),
     BOARD.width / 2,
     CARD_OVERLAY.headerY + 34,
   );
@@ -140,7 +140,7 @@ function drawRiskBadge(ctx: CanvasRenderingContext2D, rect: CardRect): void {
   ctx.font = `800 11px ${FONT}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText('RISK', badge.x + badge.width / 2, badge.y + badge.height / 2 + 1, badge.width);
+  ctx.fillText(TEXT.riskBadge, badge.x + badge.width / 2, badge.y + badge.height / 2 + 1, badge.width);
 }
 
 function traceRoundedRect(ctx: CanvasRenderingContext2D, rect: CardRect): void {

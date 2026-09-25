@@ -63,6 +63,7 @@ export const MAX_SUBSTEPS_PER_FRAME = 5;
 /** Slow-motion parameters used by the merge-moment extension point. */
 export const SLOW_MOTION = {
   durationMs: 400,
+  choiceTimeoutMs: 2500,
   timeScale: 0.25,
   cardCount: 3,
   riskCardCount: 1,
@@ -267,3 +268,80 @@ export const BALL_TIERS: readonly BallTierSpec[] = [
 ];
 
 export const MAX_TIER = BALL_TIERS.length - 1;
+
+/** Korean font stack for Canvas text rendering. */
+export const FONT_STACK = 'Pretendard, -apple-system, BlinkMacSystemFont, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif';
+
+/**
+ * Centralized Korean UI strings (i18n).
+ * All user-visible text should be referenced from here.
+ */
+export const TEXT = {
+  // HUD labels
+  scoreLabel: '점수',
+  bestLabel: '최고',
+  nextLabel: '다음',
+  roundLabel: '라운드',
+  dropsUnit: '개 남음',
+  slowMotionBadge: '슬로우 ×0.25',
+  // Card overlay
+  chooseHeader: '카드를 선택하세요',
+  riskBadge: '위험',
+  spawnPenalty: '큰 공 스폰',
+  lastSpawn: '마지막 발급',
+  // Game over / idle
+  runOverTitle: '런 종료',
+  restartHint: '클릭/터치 또는 R키로 재시작',
+  gameTitle: '머지 로그라이트',
+  startHint: '클릭/터치로 시작',
+  // Dynamic templates — functions return Korean strings
+  slowMotionBadgeDynamic: (scaleText: string): string => `슬로우 ×${scaleText}`,
+  roundStatus: (index: number, dropsLeft: number): string => `라운드 ${index} · ${dropsLeft}개 남음`,
+  scoreProgress: (progress: number, target: number): string =>
+    `${progress.toLocaleString('ko-KR')} / ${target.toLocaleString('ko-KR')}`,
+  chooseSubtext: (ms: number): string => `카드를 터치하세요 — ${ms}ms 후 안전한 카드가 자동 선택됩니다`,
+  spawnPenaltyDetail: (minTier: number, remaining: number): string =>
+    `스폰 ≥${minTier} · ${remaining}개 남음`,
+  scoreSummary: (score: string): string => `점수 ${score}`,
+  bestSummary: (best: string): string => `최고 ${best}`,
+  // Cards
+  bonusScoreTitle: (points: number): string => `+${points} 점`,
+  bonusScoreDesc: '이번 머지 점수를 한 번 더 획득합니다.',
+  doubleMultiplierTitle: '점수 ×2',
+  doubleMultiplierDesc: (uses: number): string => `다음 ${uses}번 머지 점수 2배.`,
+  tripleMultiplierTitle: '점수 ×3',
+  tripleMultiplierDesc: '다음 머지 점수 3배.',
+  gambleTitle: (mult: number): string => `도박 ×${mult}`,
+  gambleDesc: (percent: number, mult: number): string =>
+    `지금 점수의 ${percent}%를 잃지만 다음 머지 ×${mult}`,
+  pressureTitle: '압박',
+  pressureDesc: (cost: number, shift: number, mult: number): string =>
+    `${cost}점을 내고 위험선을 ${shift}px 내립니다; 다음 머지 ×${mult}.`,
+  heavyLoadTitle: '무거운 하중',
+  heavyLoadDesc: (spawns: number, tier: number, mult: number): string =>
+    `다음 ${spawns}개 스폰이 최소 ${tier}티어 이상; 다음 머지 ×${mult}.`,
+  roundClearTitle: (round: number): string => `라운드 ${round} 클리어`,
+  roundClearDesc: (points: number): string => `라운드 보너스: +${points}점.`,
+};
+
+/**
+ * Visual FX tuning (merge flash, camera shake, squash-stretch, merge pop).
+ * All magic numbers for polish effects live here.
+ */
+export const FX = {
+  /** Screen flash when a big tier merges or bomb explodes */
+  flashDurationMs: 100,
+  flashAlpha: 0.35,
+  /** Minimum result tier that triggers flash (tier 4 = value 32) */
+  flashTierThreshold: 4,
+  /** Camera shake */
+  shakeIntensity: 12,
+  shakeDurationMs: 250,
+  shakeDecay: 0.9,
+  /** Squash & stretch on collision/landing */
+  squashStretchScale: 1.1,
+  squashStretchDurationMs: 120,
+  /** Merge pop: new ball scales 1.3 -> 1.0 */
+  mergePopScale: 1.3,
+  mergePopDurationMs: 150,
+} as const;
