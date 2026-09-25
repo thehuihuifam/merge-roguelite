@@ -8,6 +8,68 @@ import type { RoundHudState } from '@/core/interfaces/IRoundSystem';
 const FONT = FONT_STACK;
 
 /**
+ * Measures the rendered width of `text` at `fontSize` (px). Injected so the
+ * score layout is testable without a real canvas.
+ */
+export type TextMeasurer = (text: string, fontSize: number) => number;
+
+/** Resolved draw geometry for the SCORE value line. */
+export interface ScoreTextLayout {
+  /** The localized score text that will be drawn. */
+  readonly text: string;
+  /** Font size (px) chosen for the current digit count. */
+  readonly fontSize: number;
+  /** Centre x of the text (the renderer draws with `textAlign = 'center'`). */
+  readonly centerX: number;
+  /** Right edge of the drawn text — kept clear of the NEXT preview ball. */
+  readonly rightEdge: number;
+}
+
+/** Fallback glyph widths (em) when no real text metrics are available. */
+const NARROW_GLYPHS = new Set([',', '.']);
+const WIDE_GLYPH_EM = 0.62;
+const NARROW_GLYPH_EM = 0.3;
+
+/** Conservative text-width estimate (wide bold digits), board units. */
+function estimateTextWidth(text: string, fontSize: number): number {
+  let ems = 0;
+  for (const glyph of text) {
+    ems += NARROW_GLYPHS.has(glyph) ? NARROW_GLYPH_EM : WIDE_GLYPH_EM;
+  }
+  return ems * fontSize;
+}
+
+/**
+ * Resolves the SCORE line for the current score (HUD defect fix, PR #19
+ * follow-up). The block is centred on `HUD_LAYOUT.score.anchorX` (the board's
+ * vertical axis), and two guards keep it clear of the NEXT preview ball:
+ *
+ * 1. From `shrinkThresholdDigits` digits the font shrinks linearly from
+ *    `maxFontSize` down to `minFontSize`, pinned at the minimum from
+ *    `minFontSizeDigits` digits upward.
+ * 2. If the shrunk text would still reach within `minGapToNext` of the NEXT
+ *    ball's left edge, the block slides left just enough to restore the gap.
+ */
+export function resolveScoreLayout(score: number, measure: TextMeasurer): ScoreTextLayout {
+  const { maxFontSize, minFontSize, shrinkThresholdDigits, minFontSizeDigits, minGapToNext } =
+    HUD_LAYOUT.score;
+  const text = score.toLocaleString('ko-KR');
+  const digits = String(Math.max(0, Math.trunc(score))).length;
+  const shrinkSpan = Math.max(1, minFontSizeDigits - shrinkThresholdDigits);
+  const shrink = Math.min(1, Math.max(0, (digits - shrinkThresholdDigits) / shrinkSpan));
+  const fontSize = maxFontSize - shrink * (maxFontSize - minFontSize);
+
+  const width = measure(text, fontSize);
+  const nextLeftEdge = BOARD.width / 2 + HUD_LAYOUT.next.offsetX - HUD_LAYOUT.next.previewRadius;
+  const maxRightEdge = nextLeftEdge - minGapToNext;
+  let centerX = HUD_LAYOUT.score.anchorX;
+  if (centerX + width / 2 > maxRightEdge) {
+    centerX = maxRightEdge - width / 2;
+  }
+  return { text, fontSize, centerX, rightEdge: centerX + width / 2 };
+}
+
+/**
  * Time-based presentation state `drawHud` needs beyond the snapshot
  * (progressive disclosure: the emphasis window depends on when the current
  * round began, which the snapshot does not carry).
@@ -60,7 +122,8 @@ function advanceFallbackProgression(snapshot: GameSnapshot): HudProgression {
 /**
  * Draws the in-run HUD in three tiers of attention (session B redesign):
  *
- * 1. primary   — SCORE: top centre, display size, brightest text on screen.
+ * 1. primary   — SCORE: top centre, display size (shrinking for long scores
+ *    so it stays clear of the NEXT ball), brightest text on screen.
  * 2. secondary — BEST (top-left corner) and NEXT (diegetic: beside the spawn
  *    point): caption size, out of the player's central focus.
  * 3. tertiary  — conditional: the round block is emphasized for
@@ -78,23 +141,31 @@ export function drawHud(
   progression?: HudProgression,
 ): void {
   const hud = progression ?? advanceFallbackProgression(snapshot);
-  const { caption, display } = DESIGN.fontSize;
+  const { caption } = DESIGN.fontSize;
   const { medium, bold, black } = DESIGN.fontWeight;
 
   // ── Primary: current score, top centre, big and bright. ──
+  // The layout shrinks the font for long scores and slides the block left if
+  // needed so the score's right edge never reaches the NEXT preview ball.
+  const scoreLayout = resolveScoreLayout(snapshot.score, (text, fontSize): number => {
+    ctx.font = `${black} ${fontSize}px ${FONT}`;
+    return typeof ctx.measureText === 'function'
+      ? ctx.measureText(text).width
+      : estimateTextWidth(text, fontSize);
+  });
   ctx.save();
-  ctx.textAlign = 'center';
+  ctx.textAlign = HUD_LAYOUT.score.align;
   ctx.textBaseline = 'top';
   ctx.fillStyle = PALETTE.text.secondary;
   ctx.font = `${medium} ${caption}px ${FONT}`;
-  ctx.fillText(TEXT.scoreLabel, BOARD.width / 2, HUD_LAYOUT.score.labelY);
+  ctx.fillText(TEXT.scoreLabel, scoreLayout.centerX, HUD_LAYOUT.score.labelY);
   // Soft dark backing keeps the number readable when the held ball or the
   // aim guide passes behind it near the spawn point.
   ctx.shadowColor = PALETTE.bg.deep;
   ctx.shadowBlur = DESIGN.shadow.medium;
   ctx.fillStyle = PALETTE.text.primary;
-  ctx.font = `${black} ${display}px ${FONT}`;
-  ctx.fillText(snapshot.score.toLocaleString('ko-KR'), BOARD.width / 2, HUD_LAYOUT.score.valueY);
+  ctx.font = `${black} ${scoreLayout.fontSize}px ${FONT}`;
+  ctx.fillText(scoreLayout.text, scoreLayout.centerX, HUD_LAYOUT.score.valueY);
   ctx.restore();
 
   // ── Secondary: BEST, top-left corner, caption scale. ──
@@ -134,11 +205,13 @@ export function drawHud(
 /**
  * Diegetic NEXT preview (session B, Task 2): the mini ball floats right next
  * to the spawn point at the top-centre column — where the held ball and the
- * aim guide already live — with its caption label just under it, so "what
- * comes next" is read in the same glance as "where I am aiming".
+ * aim guide already live — and the "다음" caption is drawn as part of the same
+ * group, a fixed `labelOffsetY` under the ball's centre (PR #19 follow-up:
+ * the label had drifted away from the ball). The label is drawn here and
+ * nowhere else — exactly one NEXT label exists on screen.
  */
 function drawNextPreview(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): void {
-  const { offsetX, previewY, previewRadius, labelGap } = HUD_LAYOUT.next;
+  const { offsetX, previewY, previewRadius, labelOffsetY } = HUD_LAYOUT.next;
   const centerX = BOARD.width / 2 + offsetX;
   const nextSpec = getTierSpec(snapshot.nextTier);
   const previewScale = Math.min(1, previewRadius / nextSpec.radius);
@@ -153,7 +226,7 @@ function drawNextPreview(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot):
   ctx.textAlign = 'center';
   ctx.fillStyle = PALETTE.text.secondary;
   ctx.font = `${DESIGN.fontWeight.medium} ${DESIGN.fontSize.caption}px ${FONT}`;
-  ctx.fillText(TEXT.nextLabel, centerX, previewY + previewRadius + labelGap);
+  ctx.fillText(TEXT.nextLabel, centerX, previewY + labelOffsetY);
   ctx.restore();
 }
 
@@ -165,17 +238,22 @@ function drawRoundInfo(
   const { caption, body } = DESIGN.fontSize;
   const { medium, bold } = DESIGN.fontWeight;
   const dropsLeft = Math.max(0, round.dropBudget - round.dropsUsed);
-  const lowDrops = dropsLeft <= HUD_LAYOUT.round.lowDropsThreshold;
+  // One rule for the drops-left line in every phase: it exists only while the
+  // budget is actually running low. The round-start emphasis window highlights
+  // the round readout and the target progress — never the drops line.
+  const showDrops = dropsLeft <= HUD_LAYOUT.round.lowDropsThreshold;
   ctx.save();
   ctx.textBaseline = 'top';
   ctx.textAlign = 'left';
   if (emphasized) {
-    // Round-start window: the full readout, bigger and brighter; the drops
-    // half flips to the warning colour as soon as the budget runs low.
-    ctx.fillStyle = lowDrops ? PALETTE.accent.warning : PALETTE.text.primary;
+    // Round-start window: the round number (body size) and the target
+    // progress. The drops count is NOT part of this line — it follows its own
+    // low-budget condition below, so a comfortable budget stays invisible
+    // even during the first seconds of a round.
+    ctx.fillStyle = PALETTE.text.primary;
     ctx.font = `${bold} ${body}px ${FONT}`;
     ctx.fillText(
-      TEXT.roundStatus(round.index, dropsLeft),
+      TEXT.roundIndexLabel(round.index),
       HUD_LAYOUT.margin,
       HUD_LAYOUT.round.emphasizedY,
     );
@@ -197,15 +275,17 @@ function drawRoundInfo(
       HUD_LAYOUT.margin,
       HUD_LAYOUT.round.quietProgressY,
     );
-    // The drops-left warning surfaces only when it is actually a concern.
-    if (lowDrops) {
-      ctx.fillStyle = PALETTE.accent.warning;
-      ctx.font = `${bold} ${caption}px ${FONT}`;
-      const scale = HUD_LAYOUT.round.lowDropsScale;
-      ctx.translate(HUD_LAYOUT.margin, HUD_LAYOUT.round.dropsY + caption / 2);
-      ctx.scale(scale, scale);
-      ctx.fillText(TEXT.dropsRemaining(dropsLeft), 0, -caption / 2);
-    }
+  }
+  // The drops-left warning surfaces only when it is actually a concern —
+  // same threshold in the emphasis window and in quiet mode.
+  if (showDrops) {
+    ctx.fillStyle = PALETTE.accent.warning;
+    ctx.font = `${bold} ${caption}px ${FONT}`;
+    const scale = HUD_LAYOUT.round.lowDropsScale;
+    const dropsY = emphasized ? HUD_LAYOUT.round.emphasizedDropsY : HUD_LAYOUT.round.dropsY;
+    ctx.translate(HUD_LAYOUT.margin, dropsY + caption / 2);
+    ctx.scale(scale, scale);
+    ctx.fillText(TEXT.dropsRemaining(dropsLeft), 0, -caption / 2);
   }
   ctx.restore();
 }

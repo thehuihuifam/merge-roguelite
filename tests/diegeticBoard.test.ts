@@ -253,9 +253,7 @@ describe('diegetic NEXT preview placement', () => {
     }
     expect(label.align).toBe('center');
     expect(label.x).toBe(spawnColumn);
-    expect(label.y).toBe(
-      HUD_LAYOUT.next.previewY + HUD_LAYOUT.next.previewRadius + HUD_LAYOUT.next.labelGap,
-    );
+    expect(label.y).toBe(HUD_LAYOUT.next.previewY + HUD_LAYOUT.next.labelOffsetY);
     // Diegetic slot: the label stays above the danger line.
     expect(label.y).toBeLessThan(120);
   });

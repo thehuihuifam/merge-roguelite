@@ -273,6 +273,21 @@ export const SPAWN_PENALTY_HUD = {
 } as const;
 
 /**
+ * NEXT preview ball geometry (see `HUD_LAYOUT.next`). Extracted so
+ * `labelOffsetY` derives from the same numbers instead of duplicating them.
+ */
+const NEXT_PREVIEW = {
+  /** Horizontal offset of the preview centre from the spawn column. */
+  offsetX: 56,
+  /** Preview centre height — the spawn height. */
+  previewY: SPAWN_Y,
+  /** Preview balls are scaled down to at most this radius. */
+  previewRadius: 18,
+  /** Clear gap between the preview ball's underside and its caption. */
+  labelGap: DESIGN.space.xs,
+} as const;
+
+/**
  * HUD layout (UX overhaul session B, Task 1). Every HUD coordinate, size and
  * margin lives here, derived from the session-A DESIGN tokens — renderers hold
  * no layout numbers of their own.
@@ -286,10 +301,29 @@ export const SPAWN_PENALTY_HUD = {
 export const HUD_LAYOUT = {
   /** Shared left/right gutter for the corner blocks, board units. */
   margin: DESIGN.space.lg,
-  /** Primary: current score — top centre, `fontSize.display`. */
+  /**
+   * Primary: current score — top centre, `fontSize.display`. Long scores
+   * shrink the font (4 digits → start, 8 digits → floor) and the block then
+   * slides left just enough to keep clear of the NEXT preview ball, so the
+   * two can never overlap no matter how big the score gets.
+   */
   score: {
+    /** SCORE is centred on the board's vertical axis, never left-aligned. */
+    align: 'center',
+    /** Board x the score is centred on — the board's centre (480 / 2). */
+    anchorX: 240,
     labelY: DESIGN.space.sm,
     valueY: DESIGN.space.sm + DESIGN.fontSize.caption + DESIGN.space.xs,
+    /** Score value font while it fits (below `shrinkThresholdDigits`). */
+    maxFontSize: DESIGN.fontSize.display,
+    /** Score value font floor — pinned from `minFontSizeDigits` upward. */
+    minFontSize: 24,
+    /** Digit count where the value font starts shrinking. */
+    shrinkThresholdDigits: 4,
+    /** Digit count at/above which the value font stays at `minFontSize`. */
+    minFontSizeDigits: 8,
+    /** Clear space kept between the score's right edge and the NEXT ball. */
+    minGapToNext: 8,
   },
   /** Secondary: best score — top-left corner, `fontSize.caption`. */
   best: {
@@ -300,16 +334,14 @@ export const HUD_LAYOUT = {
    * Secondary: next-ball preview — diegetic placement (session B, Task 2):
    * beside the actual spawn point (board top centre, `SPAWN_Y`) instead of a
    * fixed screen corner, so the player reads it together with the aim guide.
+   * The caption label and the ball are ONE group: `labelOffsetY` pins the
+   * label a fixed distance under the ball's centre, so they can never drift
+   * apart (PR #19 follow-up: the label had detached toward the top-right).
    */
   next: {
-    /** Horizontal offset of the preview centre from the spawn column. */
-    offsetX: 56,
-    /** Preview centre height — the spawn height. */
-    previewY: SPAWN_Y,
-    /** Preview balls are scaled down to at most this radius. */
-    previewRadius: 18,
-    /** Caption label sits this far under the preview ball. */
-    labelGap: DESIGN.space.xs,
+    ...NEXT_PREVIEW,
+    /** Centre-to-label-top distance: the label hugs the ball's underside. */
+    labelOffsetY: NEXT_PREVIEW.previewRadius + NEXT_PREVIEW.labelGap,
   },
   /** Tertiary: round block — left column below BEST. */
   round: {
@@ -317,6 +349,8 @@ export const HUD_LAYOUT = {
     emphasizedY: 44,
     /** Target-progress line under the emphasized readout. */
     progressY: 64,
+    /** Low-drops warning line while the round block is emphasized. */
+    emphasizedDropsY: 80,
     /** Compact round label (caption) after the emphasis window. */
     quietY: 44,
     /** Target-progress line while quiet. */
@@ -325,7 +359,11 @@ export const HUD_LAYOUT = {
     dropsY: 72,
     /** How long a round's readout stays emphasized after it starts, ms. */
     emphasisMs: 3000,
-    /** Drops left at or below this count switch to the warning emphasis. */
+    /**
+     * The drops-left line is drawn only while `dropBudget - dropsUsed` is at
+     * or below this count — in every phase, including the round-start
+     * emphasis window. Above it the drops text is never drawn at all.
+     */
     lowDropsThreshold: 5,
     /** Slight scale-up applied to the low-drops warning line. */
     lowDropsScale: 1.1,
@@ -518,8 +556,6 @@ export const TEXT = {
   startHint: '클릭/터치로 시작',
   // Dynamic templates — functions return Korean strings
   slowMotionBadgeDynamic: (scaleText: string): string => `슬로우 ×${scaleText}`,
-  roundStatus: (index: number, dropsLeft: number): string =>
-    `라운드 ${index} · ${dropsLeft}개 남음`,
   /** Quiet-mode round label (session B hierarchy): the round number alone. */
   roundIndexLabel: (index: number): string => `라운드 ${index}`,
   /** Low-drops warning line (session B hierarchy). */
