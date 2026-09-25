@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.5
+Active Next Action: Task 2.6
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.3 완료 — 폭탄 특수 공(첫 충돌 시 인접 공 제거)과 스폰 확률 설정
+- 마지막 갱신: Task 2.5 완료 — 머지 파티클 버스트 시스템과 렌더 연결
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -82,7 +82,12 @@ Active Next Action: Task 2.5
   - 설정 추가: `src/config/gameConfig.ts` 에 `SAVE` 블록(키·버전) — 매직 스트링 금지.
   - `createApp.ts` 연결: `LocalStorageSaveSystem` 생성 → `load()` 로 `initialBest` 를 `Game` 에 주입, `run:started` 에서 `lastSeed` 저장, `run:over` 에서 `bestScore = max(saved, best, score)` + `totalRuns++` 저장.
   - 테스트 추가: `tests/saveSystem.test.ts` 8건 — 빈 저장소 기본값, round-trip, clear, invalid JSON 방어, 음수/float 클램프, 버전 불일치 마이그레이션, 예외 무시, 메모리 폴백.
-- [ ] Task 2.5: `IParticleSystem` 머지 파티클 버스트
+- [x] **Task 2.5: `IParticleSystem` 머지 파티클 버스트**
+  - 실제 구현: `src/systems/BasicParticleSystem.ts` — `IParticleSystem` 구현. `burst()` 는 kind·intensity 에 따라 개수 결정(`PARTICLES` 설정: merge 14, mergeMax 24, dropDust 8, dangerSpark 6), 랜덤 각도·속도·수명에 중력·드래그 적용, 최대 200개 cap. `update()` 는 수명 감소·이동·제거, `render()` 는 alpha 페이드 원형 드로잉.
+  - 설정 추가: `src/config/gameConfig.ts` 에 `PARTICLES` 블록(개수·수명·속도·지터·중력·드래그·크기·cap).
+  - 렌더 연결: `CanvasRenderer` 에 `particles?: IParticleSystem` 옵션 추가(정적 타입 `exactOptionalPropertyTypes` 대응), 클립 안에서 공 뒤·HUD 아래에 `particles.render(ctx)` 합성.
+  - `createApp.ts` 연결: `BasicParticleSystem` 생성 → `CanvasRenderer` 주입, `GameLoop` update 에서 `particles.update(stepMs)`, 이벤트 구독 `merge:resolved`(티어 색·chain 기반 intensity, max면 merge_max), `ball:dropped`(drop_dust), `ball:detonated`(폭발), `danger:nearMissEnter`(스파크, 공 위치 탐색).
+  - 테스트 추가: `tests/particleSystem.test.ts` 9건 — burst 생성, intensity 스케일, zero 무시, 수명 후 제거, 이동·clear·cap·render 스텁·모든 kind 지원.
 - [ ] Task 2.6: `IAudioSystem` WebAudio 기반 효과음 (merge 피치는 티어에 비례)
 - [ ] Task 2.7: 배율 카드 확장 (`IScoreModifier` 를 지속 시간 기반으로 관리하는 `ModifierStack`)
 - [ ] Task 2.8: 모바일 터치 QA 및 캔버스 리사이즈 회귀 테스트(jsdom 환경 도입 여부 결정)

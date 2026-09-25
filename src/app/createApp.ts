@@ -1,10 +1,13 @@
+import { BALL_TIERS, MAX_TIER } from '@/config/gameConfig';
 import { GameLoop } from '@/app/GameLoop';
 import { Game } from '@/core/Game';
+import { getTierSpec } from '@/core/ball/BallFactory';
 import { SeededRandom, createSeed } from '@/core/rng/SeededRandom';
 import { TimeController } from '@/core/time/TimeController';
 import { PointerInput } from '@/input/PointerInput';
 import { CanvasRenderer } from '@/render/CanvasRenderer';
 import { cardIndexAt } from '@/render/CardOverlayRenderer';
+import { BasicParticleSystem } from '@/systems/BasicParticleSystem';
 import { BasicRoundSystem } from '@/systems/BasicRoundSystem';
 import { BombBallBehavior } from '@/systems/special/BombBallBehavior';
 import { SpecialBallRegistry } from '@/systems/special/SpecialBallRegistry';
@@ -52,6 +55,7 @@ export function createApp(root: HTMLElement): App {
   specialBalls.register(new BombBallBehavior(game.events));
   game.events.on('run:started', ({ seed }) => {
     cardRandom.reseed(seed);
+    particles.clear();
     try {
       const current = saveSystem.load();
       saveSystem.save({ ...current, lastSeed: seed });
@@ -79,7 +83,47 @@ export function createApp(root: HTMLElement): App {
     new BasicRoundSystem(),
     (round: RoundDefinition): MergeCard => createRoundClearRewardCard(round.index),
   );
-  const renderer = new CanvasRenderer(canvas);
+  // Juice: merge particle bursts (Task 2.5).
+  const particles = new BasicParticleSystem();
+  const renderer = new CanvasRenderer(canvas, { particles });
+  game.events.on('merge:resolved', (merge) => {
+    const tier = merge.resultTier;
+    const color = tier === null ? '#ffe66d' : (getTierSpec(tier).color ?? BALL_TIERS[Math.min(tier, MAX_TIER)]?.color ?? '#ffffff');
+    const intensity = tier === null ? 1 : Math.min(1, 0.4 + tier / (MAX_TIER + 1) + merge.chainIndex * 0.15);
+    particles.burst({
+      kind: tier === null ? 'merge_max' : 'merge',
+      position: merge.position,
+      color,
+      intensity,
+    });
+  });
+  game.events.on('ball:dropped', ({ ball }) => {
+    const spec = getTierSpec(ball.tier);
+    particles.burst({
+      kind: 'drop_dust',
+      position: { x: ball.position.x, y: ball.position.y + spec.radius },
+      color: spec.color,
+      intensity: 0.5,
+    });
+  });
+  game.events.on('ball:detonated', ({ position }) => {
+    particles.burst({
+      kind: 'merge_max',
+      position,
+      color: '#ffdd59',
+      intensity: 1,
+    });
+  });
+  game.events.on('danger:nearMissEnter', (sample) => {
+    const ball = game.getSnapshot().balls.find((b) => b.id === sample.ballId);
+    const position = ball ? { x: ball.position.x, y: ball.position.y } : { x: 240, y: 120 };
+    particles.burst({
+      kind: 'danger_spark',
+      position,
+      color: '#ff4d6d',
+      intensity: sample.severity,
+    });
+  });
   let lastAimX = Number.NaN;
 
   const beginRun = (): void => {
@@ -135,6 +179,7 @@ export function createApp(root: HTMLElement): App {
   const loop = new GameLoop({
     update: (stepMs: number): void => {
       game.update(stepMs);
+      particles.update(stepMs);
     },
     render: (): void => {
       renderer.render(game.getSnapshot());
