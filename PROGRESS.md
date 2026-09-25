@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.19 — 스폰 압박의 남은 발급 수 HUD 표시
+Active Next Action: Task 2.20 — 활성 점수 수정자의 읽기 전용 스냅샷 추가
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.18 완료 — 큰 공 스폰 리스크 카드 추가
+- 마지막 갱신: Task 2.19 완료 — 스폰 압박의 남은 발급 수 HUD 표시
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## 이번 루프 기록 (2026-09-25)
@@ -186,10 +186,14 @@ Active Next Action: Task 2.19 — 스폰 압박의 남은 발급 수 HUD 표시
   - 테스트: `tests/spawnLargerBallsCard.test.ts` 5건(콜백 인자, 미지원 거부, 정체성/severity, 설명-수치 일치, 스폰 가능 범위·×4 우위). `tests/basicMergeCardProvider.test.ts` 는 3리스크 패 계약과 `draw(4,4)` 거부로 갱신하고, 실Game 통합 헬퍼 `chooseRiskCardWith` 가 카드 id 로 덱 시드를 탐색하도록 바꿔 세 번째 리스크 카드가 추가돼도 페널티별 검증이 유지된다.
   - 문서: `docs/GDD.md` 3.2 에 수치·거부 규칙, `docs/ARCHITECTURE.md` 덱/확장 포인트 갱신, `CONTEXT.md` 미구현 목록에서 리스크 페널티 실동작 제거.
 
-- [ ] **Task 2.19: 스폰 압박의 남은 발급 수 HUD 표시**
+- [x] **Task 2.19: 스폰 압박의 남은 발급 수 HUD 표시**
   - 선행: Task 2.18. 신규: `src/render/SpawnPenaltyHudRenderer.ts`, `tests/spawnPenaltyHud.test.ts`. 기존 수정: `src/core/Game.ts`, `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`.
   - 확장 방식: 카드 컨텍스트로 생성한 페널티를 읽기 전용 `GameSnapshot.spawnPenalty?`로 노출하고 작은 렌더러가 하한 값과 남은 신규 발급 수를 표시한다. 게임 상태를 렌더러에서 수정하지 않는다.
   - 완료 기준: 활성 시 숫자/횟수 표시, 만료·재시작 시 숨김을 스냅샷/Canvas 스텁 테스트로 확인. 기존 ROUND/NEXT와 겹치지 않는 배치. 10분.
+  - 실제 구현: `Game.getSnapshot()` 이 `spawnPenalty`(하한 티어 + 남은 발급 수)를 **읽기 전용 복사본**으로 노출하고, 비활성이면 필드 자체를 넣지 않는다(만료·재시작 시 자동 숨김). `src/render/SpawnPenaltyHudRenderer.ts` 가 NEXT 미리보기 아래 우측 정렬로 `HEAVY DROPS` 라벨과 `n LEFT · TIER k+` 값을 그리고, `remainingCount <= 0` 이면 아무것도 그리지 않는다. `CanvasRenderer` 는 `drawHud` 뒤에 스냅샷 필드가 있을 때만 호출한다.
+  - 설정: `SPAWN_PENALTY_HUD`(라벨/값 y, 폰트 크기, 우측 여백)와 `PALETTE.spawnPenaltyText` 추가(매직 넘버·색 하드코딩 금지). 배치는 좌측 ROUND 컬럼·상단 NEXT 와 겹치지 않는다.
+  - 테스트 추가: `tests/spawnPenaltyHud.test.ts` 8건 — 비활성 필드 없음, 카드 적용 직후 값, 발급마다 1씩 감소 후 소진 시 필드 제거, 스냅샷 변조가 실제 상태에 영향 없음, 재시작 후 소거, 활성 시 두 줄 텍스트, 만료 시 무그림, 라벨/값 배치가 NEXT 미리보기 아래·우측 컬럼임.
+  - 문서: `docs/GDD.md` 3.2 에 HUD 표기, `docs/ARCHITECTURE.md` 스폰 하한 행에 렌더 경로 명시.
 
 - [ ] **Task 2.20: 활성 점수 수정자의 읽기 전용 스냅샷 추가**
   - 기존 수정: `src/core/interfaces/IScoreModifier.ts`, `src/core/score/ModifierStack.ts`, `src/core/Game.ts`, `tests/modifierStack.test.ts`. 신규: `tests/modifierSnapshot.test.ts`.

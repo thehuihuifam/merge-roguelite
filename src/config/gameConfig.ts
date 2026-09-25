@@ -110,6 +110,22 @@ export const MERGE_CARDS = {
 } as const;
 
 /**
+ * Layout of the spawn-pressure HUD (Task 2.19), in board units. Right-aligned
+ * in the NEXT column, below the NEXT preview ball, so it never collides with
+ * ROUND (left column) or NEXT itself.
+ */
+export const SPAWN_PENALTY_HUD = {
+  /** Distance from the top of the board to the "HEAVY DROPS" label. */
+  labelY: 76,
+  /** Distance from the top of the board to the value line. */
+  valueY: 90,
+  labelFontSize: 12,
+  valueFontSize: 13,
+  /** Right margin shared with the NEXT label. */
+  rightMargin: 14,
+} as const;
+
+/**
  * Layout of the card choice overlay drawn during `slowmo_select`, in board
  * units. The rectangle helper is exported by `src/render/CardOverlayRenderer`
  * so pointer input can hit-test the very shapes that were drawn.

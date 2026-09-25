@@ -18,4 +18,6 @@ export const PALETTE = {
   cardRiskBorder: '#ff4d6d',
   cardRiskText: '#ff8fa3',
   cardBadgeText: '#14141f',
+  /** Spawn-pressure HUD value text (Task 2.19). */
+  spawnPenaltyText: '#ffb703',
 } as const;

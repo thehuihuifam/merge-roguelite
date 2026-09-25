@@ -10,6 +10,7 @@ import {
 import { BallFactory, getTierSpec } from '@/core/ball/BallFactory';
 import { BallRegistry } from '@/core/ball/BallRegistry';
 import { SpawnTierPenalty } from '@/core/ball/SpawnTierPenalty';
+import type { SpawnPenaltyHudState } from '@/core/ball/SpawnTierPenalty';
 import { OverflowDetector } from '@/core/danger/OverflowDetector';
 import { EventBus } from '@/core/events/EventBus';
 import { MergeResolver } from '@/core/merge/MergeResolver';
@@ -100,6 +101,12 @@ export interface GameSnapshot {
    * the core stays unaware of the round structure. Absent means no display.
    */
   readonly round?: RoundHudState;
+  /**
+   * Active spawn pressure (Task 2.19): the tier floor new balls are rolled
+   * with and how many of them are left. Read-only copy, absent when no
+   * penalty is active — renderers must not mutate game state.
+   */
+  readonly spawnPenalty?: SpawnPenaltyHudState;
 }
 
 /**
@@ -328,6 +335,7 @@ export class Game {
       pendingCards: this.pendingCards,
       seed: this.seed,
       chainIndex: this.chainIndex,
+      ...(this.isSpawnPenaltyActive() ? { spawnPenalty: this.spawnPenaltyState() } : {}),
     };
   }
 
@@ -364,6 +372,15 @@ export class Game {
       this.nearMissActive = false;
       this.nearMiss.onNearMissExit();
     }
+  }
+
+  private isSpawnPenaltyActive(): boolean {
+    return this.spawnPenalty.isActive;
+  }
+
+  /** Read-only copy for the HUD, so renderers cannot poke at the state object. */
+  private spawnPenaltyState(): SpawnPenaltyHudState {
+    return { floor: this.spawnPenalty.floor, remainingCount: this.spawnPenalty.remainingCount };
   }
 
   private clampAimX(x: number, tier: number): number {

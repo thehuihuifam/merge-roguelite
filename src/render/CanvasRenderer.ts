@@ -4,6 +4,7 @@ import { drawCardOverlay } from '@/render/CardOverlayRenderer';
 import { drawDangerLine } from '@/render/DangerLineRenderer';
 import { drawGameOver, drawHeldBall, drawHud, drawIdle } from '@/render/HudRenderer';
 import { NearMissVignetteAnimator, drawNearMissVignette } from '@/render/NearMissVignetteRenderer';
+import { drawSpawnPenaltyHud } from '@/render/SpawnPenaltyHudRenderer';
 import { PALETTE } from '@/render/palette';
 import type { GameSnapshot } from '@/core/Game';
 import type { IParticleSystem } from '@/core/interfaces/IParticleSystem';
@@ -119,6 +120,9 @@ export class CanvasRenderer {
     }
 
     drawHud(ctx, snapshot);
+    if (snapshot.spawnPenalty !== undefined) {
+      drawSpawnPenaltyHud(ctx, snapshot.spawnPenalty);
+    }
 
     if (snapshot.state === 'idle') {
       drawIdle(ctx);
