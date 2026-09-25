@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Active Next Action: Task 2.8
+Active Next Action: Task 2.9
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
 - 마지막 갱신: Task 2.7 완료 — 배율 카드 지속 시간 관리 ModifierStack
@@ -98,7 +98,10 @@ Active Next Action: Task 2.8
   - `Game` 리팩터: `ModifierStack` 소유, 생성자에서 `asModifier()` 를 `ScoreCalculator` 에 주입, `resetRun()` 에서 `clear()`, `update()` 에서 `modifierStack.update(gameDelta)`, `pushTemporaryMultiplier()` 가 `modifierStack.push()` 로 위임 — 기존 클로저 기반 임시 수정자를 스택으로 교체.
   - `ARCHITECTURE.md` 확장 포인트 표 갱신: 점수 수정자·세이브·사운드·파티클·특수공 기본 구현을 실제 파일명으로 업데이트.
   - 테스트 추가: `tests/modifierStack.test.ts` 9건 — 단일 배율, 남은 횟수 소진 만료, 다중 스택 곱, detach 조기 제거, clear, 시간 만료 update, asModifier 위임, invalid 인자 예외, Game-like 통합 흐름.
-- [ ] Task 2.8: 모바일 터치 QA 및 캔버스 리사이즈 회귀 테스트(jsdom 환경 도입 여부 결정)
+- [x] **Task 2.8: 모바일 터치 QA 및 캔버스 리사이즈 회귀 테스트(jsdom 환경 도입 여부 결정)**
+  - 모바일 입력 시뮬레이션: `PointerInput` 이 활성 pointer ID 를 추적해 멀티터치의 다른 손가락 입력을 무시하고, `pointercancel` 후 드롭하지 않으며 다음 터치를 받을 수 있게 보강. `touch-action: none` 을 유지한다.
+  - 회귀 테스트 추가: `tests/pointerInput.test.ts` 에 터치 드래그→선택/드롭, 포인터 격리, 취소/재시작, 호버 조준 4건; `tests/canvasRenderer.test.ts` 에 DPR 변경·세로형 레터박스·리사이즈 후 보드 좌표 및 초기 0 크기 bounds 2건.
+  - jsdom 미도입 결정: 테스트 환경은 계속 Node 로 유지. PointerEvent/EventTarget 과 Canvas bounds/context 의 작은 스텁으로 필요한 브라우저 경계 동작을 고정해 새 의존성을 피한다. 실제 기기별 수동 QA 는 이 세션에서 수행하지 않음.
 - [ ] Task 2.9: `MergeCardContext` 에 위험선 이동 필드 추가 후 `raise_danger_line` 카드를 실동작으로 연결 — 현재 이 카드는 점수 −50 만 적용하고 `severity` 0.5 만 들고 있어 보상이 없는 순수 페널티다(Task 1.2 에서 발견)
 - [ ] Task 2.10: 최대 티어 소멸(`resultTier === null`, 10,000점 보너스)에도 카드 선택창 열기 — 지금은 `CardSlowMotionSelector` 가 결과 티어가 있는 머지만 취급해서, 가장 화려한 합체가 선택 없이 지나간다(Task 1.3 에서 발견). `minResultTier` 판정에 `resultTier === null` 케이스를 추가하고 테스트 1건 보강.
 - [ ] Task 2.11: 카드 선택 키보드 지원(1/2/3 키) — 지금은 포인터 `onSelect` 만 연결돼 있어 키보드 플레이어는 타임아웃에만 의존한다(Task 1.4 에서 발견). `PointerInput` 의 keydown 스위치에 숫자 키를 추가하고 `createApp.ts` 에서 인덱스 → `game.chooseCard` 로 연결.

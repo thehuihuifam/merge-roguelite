@@ -13,7 +13,7 @@ export interface PointerInputHandlers {
  */
 export class PointerInput {
   private readonly disposers: Array<() => void> = [];
-  private pointerDown = false;
+  private activePointerId: number | null = null;
 
   constructor(
     private readonly target: HTMLElement,
@@ -22,24 +22,32 @@ export class PointerInput {
 
   attach(): void {
     this.listen(this.target, 'pointerdown', (event: PointerEvent) => {
-      this.pointerDown = true;
+      if (this.activePointerId !== null && this.activePointerId !== event.pointerId) {
+        return;
+      }
+      this.activePointerId = event.pointerId;
       this.target.setPointerCapture(event.pointerId);
       this.handlers.onAim(event.clientX);
     });
     this.listen(this.target, 'pointermove', (event: PointerEvent) => {
+      if (this.activePointerId !== null && this.activePointerId !== event.pointerId) {
+        return;
+      }
       this.handlers.onAim(event.clientX);
     });
     this.listen(this.target, 'pointerup', (event: PointerEvent) => {
-      if (!this.pointerDown) {
+      if (this.activePointerId !== event.pointerId) {
         return;
       }
-      this.pointerDown = false;
+      this.activePointerId = null;
       this.handlers.onAim(event.clientX);
       this.handlers.onSelect(event.clientX, event.clientY);
       this.handlers.onDrop(event.clientX);
     });
-    this.listen(this.target, 'pointercancel', () => {
-      this.pointerDown = false;
+    this.listen(this.target, 'pointercancel', (event: PointerEvent) => {
+      if (this.activePointerId === event.pointerId) {
+        this.activePointerId = null;
+      }
     });
     this.listen(this.target, 'contextmenu', (event: Event) => {
       event.preventDefault();
@@ -73,6 +81,7 @@ export class PointerInput {
     for (const dispose of this.disposers.splice(0)) {
       dispose();
     }
+    this.activePointerId = null;
   }
 
   private listen<K extends keyof HTMLElementEventMap>(
