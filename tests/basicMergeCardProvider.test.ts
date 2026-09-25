@@ -123,7 +123,9 @@ describe('BasicMergeCardProvider.draw', () => {
     expect(() => provider.draw(mergeEvent, 2, 3)).toThrow(RangeError);
     expect(() => provider.draw(mergeEvent, 0, 0)).toThrow(RangeError);
     expect(() => provider.draw(mergeEvent, 5, 1)).toThrow(RangeError);
-    expect(() => provider.draw(mergeEvent, 3, 3)).toThrow(RangeError);
+    // Task 2.18 grew the risk pool to three, so (3, 3) is legal now and the
+    // rejection contract moves to a request the deck still cannot satisfy.
+    expect(() => provider.draw(mergeEvent, 4, 4)).toThrow(RangeError);
     expect(() => provider.draw(mergeEvent, 1.5, 0)).toThrow(RangeError);
   });
 });

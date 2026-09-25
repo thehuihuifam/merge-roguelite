@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Active Next Action: Task 2.18 — 큰 공 스폰 리스크 카드 추가
+Active Next Action: Task 2.19 — 스폰 압박의 남은 발급 수 HUD 표시
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
 - 마지막 갱신: 2026-09-25 — 백로그 보충 전용 루프, Task 2.15~2.34 제안 (기능 구현 없음)
@@ -173,10 +173,13 @@ Active Next Action: Task 2.18 — 큰 공 스폰 리스크 카드 추가
   - 실제 구현: `Game`이 `SpawnTierPenalty`를 소유하고 `buildCardContext`에 `raiseSpawnTierFloor` 콜백을 채워 준다. `drop()`의 신규 NEXT 발급만 `spawnPenalty.apply(roll)`을 거친다(선택 당시 보이는 held/기존 NEXT 불변, 폭탄 난수 `rollSpawnSpecial` 순서 유지). `resetRun`에서 `spawnPenalty.reset()`으로 재시작 해제.
   - 테스트 추가: `tests/gameSpawnPenalty.test.ts` 4건 — 카드 적용 시 held/NEXT 미변경, floor(4,3) 적용 후 정확히 3회 발급이 티어 4로 고정되고 만료 뒤 페널티 없는 시드 게임과 롤이 정확히 일치, floor 활성 중에도 특수 공 롤(확률 1) 유지, 게임 오버 → 재시작 뒤 페널티 없는 롤 시퀀스와 일치(재시작 해제).
 
-- [ ] **Task 2.18: 큰 공 스폰 리스크 카드 추가**
+- [x] **Task 2.18: 큰 공 스폰 리스크 카드 추가**
   - 선행: Task 2.17. 신규: `src/systems/cards/SpawnLargerBallsCard.ts`, `tests/spawnLargerBallsCard.test.ts`. 기존 수정: `src/systems/cards/BasicMergeCardProvider.ts`, `src/config/gameConfig.ts`, `tests/basicMergeCardProvider.test.ts`.
   - 확장 방식: `RiskCard` 구현으로 다음 신규 발급 3회 티어 하한 3의 대가와 다음 머지 ×4 1회 보상을 제안한다. 컨텍스트 기능이 없으면 페널티 없는 보상을 주지 않고 적용을 거부한다. 기존 provider의 리스크 풀에 1장만 추가한다.
   - 완료 기준: 페널티/보상 콜백 인자, 미지원 컨텍스트 거부, 시드 결정성, 3장 중 리스크 정확히 1장 계약 테스트 통과. 설명에 하한/횟수/보상을 명시한다. 10분.
+  - 실제 구현: `src/systems/cards/SpawnLargerBallsCard.ts` 추가 — `HEAVY LOAD`(id `risk-spawn-larger-balls`). `raiseSpawnTierFloor(MERGE_CARDS.spawnLargerFloorTier=3, spawnLargerSpawns=3)` 후 `pushScoreMultiplier(4, 1)` 지급. 콜백 미지원 컨텍스트에서는 아무 것도 하지 않아 무료 보상을 차단(적용 거부). 수치는 `MERGE_CARDS`에 `spawnLarger*` 블록으로 추가.
+  - `BasicMergeCardProvider.riskPool`에 1장 추가(리스크 3장 덱). `tests/basicMergeCardProvider.test.ts`의 거부 계약을 `(3,3)`→`(4,4)`로 이동(덱 확장으로 `(3,3)`이 유효해짐).
+  - 테스트 추가: `tests/spawnLargerBallsCard.test.ts` 6건 — 메타데이터·설명 수치, 페널티/보상 콜백 인자, 미지원 컨텍스트 무효, 확장 덱 시드 결정성, 리스크 3장 중복 없음 + HEAVY LOAD 포함, 실Game 종단(floor 3 발급 보장).
 
 - [ ] **Task 2.19: 스폰 압박의 남은 발급 수 HUD 표시**
   - 선행: Task 2.18. 신규: `src/render/SpawnPenaltyHudRenderer.ts`, `tests/spawnPenaltyHud.test.ts`. 기존 수정: `src/core/Game.ts`, `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`.

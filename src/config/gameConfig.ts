@@ -99,6 +99,16 @@ export const MERGE_CARDS = {
   dangerLineMultiplier: 4,
   dangerLineMultiplierUses: 1,
   dangerLineSeverity: 0.5,
+  /**
+   * Risk: force the next dispenser issuances up to at least this tier
+   * (`spawn_larger_balls`, Task 2.18) — board pressure in exchange for a
+   * one-shot merge multiplier.
+   */
+  spawnLargerFloorTier: 3,
+  spawnLargerSpawns: 3,
+  spawnLargerMultiplier: 4,
+  spawnLargerMultiplierUses: 1,
+  spawnLargerSeverity: 0.6,
 } as const;
 
 /**
