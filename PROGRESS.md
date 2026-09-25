@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 1.2
+Active Next Action: Task 1.3
 
 - 버전: v0.1.0 (MVP 베이스라인)
-- 마지막 갱신: Task 1.1 완료 + infra.pages 배포 워크플로 추가
+- 마지막 갱신: Task 1.2 완료 — 기본 머지 카드 덱(`BasicMergeCardProvider`) 추가
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -25,10 +25,15 @@ Active Next Action: Task 1.2
   - 테스트 추가: `tests/slowMotionNearMissEffect.test.ts` — enter 시 timeScale 이 0.25 로 내려가고 exit 후 400ms 지나면 1 로 복귀.
   - 완료 기준: 위험선 근처에 공이 멈추면 게임이 느려지고 HUD 에 `SLOW ×0.25` 가 보인다. 10분 크기.
 
-- [ ] **Task 1.2: 기본 머지 카드 덱과 IMergeCardProvider 구현**
+- [x] **Task 1.2: 기본 머지 카드 덱과 IMergeCardProvider 구현**
   - 파일 추가: `src/systems/cards/BasicMergeCardProvider.ts` — `IMergeCardProvider` 구현. 보상 카드 3종(`+N점`: 합체 점수만큼 추가, `×2 배율 2회`: `pushScoreMultiplier(2, 2)`, `×3 배율 1회`: `pushScoreMultiplier(3, 1)`)과 리스크 카드 2종(`score_loss`: 현재 점수 10% 차감 후 `pushScoreMultiplier(4, 1)`, `raise_danger_line`: severity 0.5, 현재 v0.1.0 컨텍스트로는 위험선을 올릴 수 없으므로 apply 는 점수 −50 만 수행하고 위험선 상승은 Task 2.x 에서 `MergeCardContext` 필드 추가로 확장) 정의.
   - `draw(merge, count, riskCount)` 는 `SeededRandom` 을 주입받아 결정적으로 뽑고, 정확히 `riskCount` 장이 `RiskCard` 여야 한다.
   - 테스트 추가: `tests/basicMergeCardProvider.test.ts` — 3장 중 1장이 risk, 같은 시드는 같은 결과, apply 가 점수를 바꾼다.
+  - 실제 구현: `src/systems/cards/BasicMergeCardProvider.ts` 추가. 보상 카드 3종(`+N점` / `SCORE ×2` 2회 / `SCORE ×3` 1회), 리스크 카드 2종(`score_loss` severity 0.7 = 현재 점수 10% 차감 후 `pushScoreMultiplier(4, 1)`, `raise_danger_line` severity 0.5 = 점수 −50) 정의. 카드 id 는 `CARD_IDS` 로 export 해 Task 1.4 UI 가 재사용한다.
+  - `draw(merge, count, riskCount)` 는 생성자로 주입한 `SeededRandom` 으로 보상/리스크 풀에서 비복원 추출 후 Fisher-Yates 셔플 → 정확히 `riskCount` 장이 `RiskCard`, 한 핸드는 중복 카드 없음, 같은 시드는 같은 핸드를 반환. 덱이 감당 못 하는 요청(`riskCount > count`, 카드 수 초과, 정수 아닌 count)은 `RangeError`.
+  - 카드 수치는 `src/config/gameConfig.ts` 의 `MERGE_CARDS` 상수 블록으로 이동(매직 넘버 금지 규칙).
+  - 테스트 추가: `tests/basicMergeCardProvider.test.ts` 17개 — draw 계약(3장 중 1장 risk, 시드 결정성, 중복 없음, 경계/예외), 카드별 apply 효과(가짜 `MergeCardContext` 로 점수 델타·배율 인자 검증), 그리고 `Game.chooseCard` 통합 2건(실제 드롭 → `slowmo_select` → 리스크 카드 선택 시 점수가 `score_loss`/`raise_danger_line` 규칙대로 감소하고 상태가 복귀).
+  - 미연결: `createApp.ts` 주입과 `ISlowMotionSelector` 연결은 Task 1.3, 카드 렌더링/입력은 Task 1.4.
 
 - [ ] **Task 1.3: 슬로우모션 선택 셀렉터 구현 (ISlowMotionSelector 실구현)**
   - 파일 추가: `src/systems/CardSlowMotionSelector.ts` — `ISlowMotionSelector` 구현. `onMergeMoment` 에서 `resultTier >= 2` 인 머지에 대해 `IMergeCardProvider.draw(merge, SLOW_MOTION.cardCount, SLOW_MOTION.riskCardCount)` 결과와 `SLOW_MOTION` 파라미터로 `SlowMotionRequest` 를 반환. `onTimeout` 은 첫 번째 비-리스크 카드를 반환.
@@ -50,6 +55,7 @@ Active Next Action: Task 1.2
 - [ ] Task 2.6: `IAudioSystem` WebAudio 기반 효과음 (merge 피치는 티어에 비례)
 - [ ] Task 2.7: 배율 카드 확장 (`IScoreModifier` 를 지속 시간 기반으로 관리하는 `ModifierStack`)
 - [ ] Task 2.8: 모바일 터치 QA 및 캔버스 리사이즈 회귀 테스트(jsdom 환경 도입 여부 결정)
+- [ ] Task 2.9: `MergeCardContext` 에 위험선 이동 필드 추가 후 `raise_danger_line` 카드를 실동작으로 연결 — 현재 이 카드는 점수 −50 만 적용하고 `severity` 0.5 만 들고 있어 보상이 없는 순수 페널티다(Task 1.2 에서 발견)
 
 ### Infra
 

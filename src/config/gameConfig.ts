@@ -42,6 +42,32 @@ export const SLOW_MOTION = {
   riskCardCount: 1,
 } as const;
 
+/**
+ * Merge card deck tuning. Consumed by `src/systems/cards/`.
+ * `severity` values only drive UI intensity (border colour, shake), 0..1.
+ */
+export const MERGE_CARDS = {
+  /** Reward: ×2 on the next two merges. */
+  doubleMultiplier: 2,
+  doubleMultiplierUses: 2,
+  /** Reward: ×3 on the next merge. */
+  tripleMultiplier: 3,
+  tripleMultiplierUses: 1,
+  /** Risk: share of the current score removed immediately. */
+  scoreLossRatio: 0.1,
+  scoreLossSeverity: 0.7,
+  /** Risk: upside handed out after the score loss. */
+  scoreLossMultiplier: 4,
+  scoreLossMultiplierUses: 1,
+  /**
+   * Risk: flat score removed by the danger-line card. v0.1.0 cannot move the
+   * danger line yet (no `MergeCardContext` field for it), so the penalty is
+   * score only until Task 2.x adds one.
+   */
+  dangerLineScoreCost: 50,
+  dangerLineSeverity: 0.5,
+} as const;
+
 /** Score awarded when two max-tier balls merge and vanish. */
 export const MAX_TIER_MERGE_BONUS = 10000;
 
