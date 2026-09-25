@@ -156,6 +156,12 @@ export const SPECIAL_BALLS = {
   bombSpawnChance: 0.05,
   /** Balls whose centre lies within this radius of a bomb are removed with it. */
   bombBlastRadius: 90,
+  /**
+   * Share of the removed balls' tier values paid out as blast score
+   * (Task 2.14): `round(sum(values) * blastScoreRatio)`, flat — no chain or
+   * card multipliers. Clearing big balls should feel rewarding, not wasteful.
+   */
+  blastScoreRatio: 0.5,
 } as const;
 
 /** Persistent save (Task 2.4). Key and version for localStorage. */

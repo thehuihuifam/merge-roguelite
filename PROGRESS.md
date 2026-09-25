@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.14
+Active Next Action: 없음 — 백로그 소진, 다음 세션은 AGENTS.md 4.11 백로그 제안 모드
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.13 완료 — 라운드 클리어 보상 카드 선택지
+- 마지막 갱신: Task 2.14 완료 — 폭탄 폭발 득점 보상
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -124,7 +124,11 @@ Active Next Action: Task 2.14
   - `createRoundClearChoice(round)` 신설 — `+N점` + `SCORE ×2` 2회 + `SCORE ×3` 1회(기존 팩토리 재사용). `RoundRunner` 생성자가 `rewardFor` 단일 카드에서 `choiceFor` 패로 바뀌고, 클리어 시 선택 오픈+즉시 어드밴스(고른 보상은 새 라운드 소득), 선택 중 추가 지급은 `choosing` 가드로 대기 후 `time:slowMotionEnd` 재확인, 보드 busy 시 선두 카드 즉시 지급 폴백, 빈 패면 무보상 어드밴스.
   - `docs/GDD.md` 4절(선택 규칙·새 라운드 합산·폴백)과 `docs/ARCHITECTURE.md` 슬로우모션/라운드 행 갱신.
   - 테스트: `tests/roundRunner.test.ts` 전면 개편(선택 오픈·busy 폴백·예산 스킵·선택 중 대기 후 지급·빈 패·리셋·dispose·실Game 전체 루프) + `createRoundClearChoice` 1건, `tests/roundClearChoice.test.ts` 6건(Game 오픈/재개/거부 3건, 셀렉터 offerCards 3건). `roundHud.test.ts` fake Game 도 새 인터페이스에 맞춤.
-- [ ] Task 2.14: 폭탄 폭발 득점 보상 설계 — 지금은 제거만 하고 점수가 없어, 큰 공을 지울수록 손해로 느껴질 수 있다(Task 2.3 에서 발견). 제거된 공 값의 일정 비율 지급 등을 GDD 와 함께 결정한다.
+- [x] **Task 2.14: 폭탄 폭발 득점 보상 설계**
+  - 규칙(GDD 2.2와 함께 결정): 폭발 점수 = `round(제거된 공 티어 값 합 × SPECIAL_BALLS.blastScoreRatio(=0.5))`, 폭탄 자신 포함·연쇄/카드 배율 없는 flat 지급. `score:changed`를 거쳐 라운드 목표에도 합산된다.
+  - 순수 함수 `blastScore(victims, ratio)`를 `BombBallBehavior.ts`에 추가(비율 음수/NaN은 `RangeError`). `Game.detonate`가 제거 후 점수부터 적용하고(`score:changed`), `ball:detonated`에 `scoreGained` 필드(페이로드 확장)를 담아 발화 — 머지와 같은 발화 순서(점수→이벤트).
+  - `docs/GDD.md` 2.2절(폭발 점수 규칙)과 `docs/ARCHITECTURE.md` 특수공 행(`blastScore`, `scoreGained`, Task 2.14 완료) 갱신.
+  - 테스트: `tests/specialBalls.test.ts` 5건 — `blastScore` 순수 로직 4건(비율·반올림·0·예외)과 실Game 통합 1건(2폭탄 폭발의 정확한 점수·이벤트·`score:changed` 일치).
 
 ### Infra
 

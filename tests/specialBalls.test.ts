@@ -2,7 +2,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { BOARD, PHYSICS_STEP_MS, SPECIAL_BALLS } from '@/config/gameConfig';
 import { Game } from '@/core/Game';
 import { EventBus } from '@/core/events/EventBus';
-import { BombBallBehavior, blastVictims } from '@/systems/special/BombBallBehavior';
+import { getTierSpec } from '@/core/ball/BallFactory';
+import {
+  BombBallBehavior,
+  blastScore,
+  blastVictims,
+} from '@/systems/special/BombBallBehavior';
 import { SpecialBallRegistry } from '@/systems/special/SpecialBallRegistry';
 import type { GameEventMap } from '@/core/events/GameEvents';
 import type { Ball, BallId } from '@/core/types';
@@ -100,6 +105,41 @@ describe('blastVictims', () => {
     const stack: Ball[] = [bomb, ballAt(2, 100, 60), ballAt(3, 150, 120), ballAt(4, 300, 500)];
     const victims = blastVictims(bomb, stack, 90);
     expect(victims.map((ball) => ball.id)).toEqual([1, 2, 3]);
+  });
+});
+
+describe('blastScore', () => {
+  function ballWithTier(id: number, tier: number): Ball {
+    return {
+      id,
+      tier,
+      position: { x: 0, y: 0 },
+      velocity: { x: 0, y: 0 },
+      spawnedAt: 0,
+    };
+  }
+
+  it('pays the configured share of the removed tier values', () => {
+    // Tier 0 is worth 2, tier 4 is worth 32: (2 + 32) * 0.5 = 17.
+    const victims = [ballWithTier(1, 0), ballWithTier(2, 4)];
+    expect(blastScore(victims, SPECIAL_BALLS.blastScoreRatio)).toBe(17);
+  });
+
+  it('rounds the payout to whole points', () => {
+    expect(blastScore([ballWithTier(1, 1)], 0.5)).toBe(2);
+    expect(blastScore([ballWithTier(1, 0), ballWithTier(2, 1)], 0.5)).toBe(3);
+    expect(blastScore([ballWithTier(1, 0)], 0.5)).toBe(1);
+  });
+
+  it('pays nothing for an empty blast or a zero ratio', () => {
+    expect(blastScore([], SPECIAL_BALLS.blastScoreRatio)).toBe(0);
+    expect(blastScore([ballWithTier(1, 3)], 0)).toBe(0);
+  });
+
+  it('rejects a negative or non-finite ratio', () => {
+    const victims = [ballWithTier(1, 0)];
+    expect(() => blastScore(victims, -0.5)).toThrow(RangeError);
+    expect(() => blastScore(victims, Number.NaN)).toThrow(RangeError);
   });
 });
 
@@ -207,5 +247,42 @@ describe('bomb balls in a run', () => {
     expect(blast?.bombId).toBe(first);
     expect(blast?.removedIds.length).toBeGreaterThanOrEqual(2);
     expect(game.ballCount).toBe(0);
+  });
+
+  it('pays half the removed balls’ tier values as blast score', () => {
+    const created = createBombGame(1);
+    game = created.game;
+    const detonations: { removedIds: readonly BallId[]; scoreGained: number }[] = [];
+    const scoreDeltas: number[] = [];
+    game.events.on('ball:detonated', ({ removedIds, scoreGained }): void => {
+      detonations.push({ removedIds, scoreGained });
+    });
+    game.events.on('score:changed', ({ delta }): void => {
+      scoreDeltas.push(delta);
+    });
+
+    game.start(2024);
+    game.setAimX(BOARD.width / 2);
+    game.drop();
+    settle(game);
+    game.drop();
+    // Two bombs, nothing else on the board: read their tiers before the blast.
+    const tiers = game.getSnapshot().balls.map((ball) => ball.tier);
+    expect(tiers).toHaveLength(2);
+    const expected = Math.round(
+      tiers.reduce((sum, tier) => sum + getTierSpec(tier).value, 0) *
+        SPECIAL_BALLS.blastScoreRatio,
+    );
+
+    for (let elapsed = 0; elapsed < 6000 && detonations.length === 0; elapsed += PHYSICS_STEP_MS) {
+      game.update(PHYSICS_STEP_MS);
+    }
+
+    expect(detonations).toHaveLength(1);
+    expect(detonations[0]?.removedIds).toHaveLength(2);
+    expect(detonations[0]?.scoreGained).toBe(expected);
+    expect(expected).toBeGreaterThan(0);
+    expect(game.score).toBe(expected);
+    expect(scoreDeltas).toEqual([expected]);
   });
 });

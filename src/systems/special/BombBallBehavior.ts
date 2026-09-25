@@ -1,4 +1,5 @@
 import { SPECIAL_BALLS } from '@/config/gameConfig';
+import { getTierSpec } from '@/core/ball/BallFactory';
 import type { EventBus } from '@/core/events/EventBus';
 import type { GameEventMap } from '@/core/events/GameEvents';
 import type { ISpecialBallBehavior } from '@/core/interfaces/ISpecialBall';
@@ -26,6 +27,19 @@ export function blastVictims(
     }
   }
   return victims;
+}
+
+/**
+ * Blast score (Task 2.14): the removed balls' tier values — the bomb's own
+ * included — times `ratio`, rounded to whole points. Flat by design: no
+ * chain bonus, no card multipliers, just compensation for cleared mass.
+ */
+export function blastScore(victims: readonly Ball[], ratio: number): number {
+  if (!Number.isFinite(ratio) || ratio < 0) {
+    throw new RangeError(`blastScore ratio must be a finite number >= 0, got ${ratio}`);
+  }
+  const total = victims.reduce((sum, ball) => sum + getTierSpec(ball.tier).value, 0);
+  return Math.round(total * ratio);
 }
 
 /**

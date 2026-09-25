@@ -21,7 +21,7 @@ import { TimeController } from '@/core/time/TimeController';
 import { PhysicsWorld } from '@/physics/PhysicsWorld';
 import { NoopNearMissEffect } from '@/systems/NoopNearMissEffect';
 import { SpecialBallRegistry } from '@/systems/special/SpecialBallRegistry';
-import { blastVictims } from '@/systems/special/BombBallBehavior';
+import { blastScore, blastVictims } from '@/systems/special/BombBallBehavior';
 import { NoopSlowMotionSelector } from '@/systems/NoopSlowMotionSelector';
 import type { GameEventMap } from '@/core/events/GameEvents';
 import type { INearMissEffect } from '@/core/interfaces/INearMissEffect';
@@ -452,10 +452,15 @@ export class Game {
       this.registry.remove(victim.id);
       this.physics.removeBall(victim.id);
     }
+    // Blast score first (emits score:changed), then the detonation — the same
+    // order merges use (score, then merge:resolved).
+    const scoreGained = blastScore(victims, SPECIAL_BALLS.blastScoreRatio);
+    this.applyScoreDelta(scoreGained);
     this.events.emit('ball:detonated', {
       bombId: bomb.id,
       removedIds: victims.map((victim) => victim.id),
       position: bomb.position,
+      scoreGained,
     });
   }
 
