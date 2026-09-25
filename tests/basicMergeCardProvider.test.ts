@@ -111,6 +111,16 @@ describe('BasicMergeCardProvider.draw', () => {
     expect(risky.filter(isRiskCard)).toHaveLength(2);
   });
 
+  it('draws a three-risk-card hand without duplicates since Task 2.18', () => {
+    const risky = new BasicMergeCardProvider(new SeededRandom(11)).draw(mergeEvent, 3, 3);
+
+    expect(risky).toHaveLength(3);
+    expect(risky.filter(isRiskCard)).toHaveLength(3);
+    expect(risky.map((card) => card.id).sort()).toEqual(
+      [CARD_IDS.raiseDangerLine, CARD_IDS.scoreLoss, CARD_IDS.spawnLargerBalls].sort(),
+    );
+  });
+
   it('spends every reward card when the hand is bigger than the risk pool', () => {
     const hand = new BasicMergeCardProvider(new SeededRandom(5)).draw(mergeEvent, 4, 1);
     expect(hand).toHaveLength(4);
@@ -123,7 +133,7 @@ describe('BasicMergeCardProvider.draw', () => {
     expect(() => provider.draw(mergeEvent, 2, 3)).toThrow(RangeError);
     expect(() => provider.draw(mergeEvent, 0, 0)).toThrow(RangeError);
     expect(() => provider.draw(mergeEvent, 5, 1)).toThrow(RangeError);
-    expect(() => provider.draw(mergeEvent, 3, 3)).toThrow(RangeError);
+    expect(() => provider.draw(mergeEvent, 4, 4)).toThrow(RangeError);
     expect(() => provider.draw(mergeEvent, 1.5, 0)).toThrow(RangeError);
   });
 });
@@ -220,11 +230,29 @@ describe('BasicMergeCardProvider with Game', () => {
   });
 
   /**
-   * Plays a real run until the merge-moment choice opens (deck drawn with
-   * `deckSeed`), then picks the risk card the deck guaranteed and reports the
-   * score before and after the choice.
+   * Finds a deck seed whose guaranteed risk card is `cardId`. The draw only
+   * touches the injected RNG, so this needs no live game.
    */
-  function chooseRiskCardWith(deckSeed: number): {
+  function deckSeedOffering(cardId: string): number {
+    for (let seed = 1; seed <= 500; seed += 1) {
+      const hand = new BasicMergeCardProvider(new SeededRandom(seed)).draw(
+        mergeEvent,
+        SLOW_MOTION.cardCount,
+        SLOW_MOTION.riskCardCount,
+      );
+      if (hand.some((card) => card.id === cardId)) {
+        return seed;
+      }
+    }
+    throw new Error(`no deck seed offers ${cardId}`);
+  }
+
+  /**
+   * Plays a real run until the merge-moment choice opens with a deck that
+   * offers the requested risk card, then picks it and reports the score and
+   * danger line before and after the choice.
+   */
+  function chooseRiskCardWith(cardId: string): {
     riskId: string;
     before: number;
     after: number;
@@ -232,7 +260,7 @@ describe('BasicMergeCardProvider with Game', () => {
     dangerLineAfter: number;
     offered: readonly MergeCard[];
   } {
-    const provider = new BasicMergeCardProvider(new SeededRandom(deckSeed));
+    const provider = new BasicMergeCardProvider(new SeededRandom(deckSeedOffering(cardId)));
     let offered: readonly MergeCard[] = [];
     const selector: ISlowMotionSelector = {
       onMergeMoment: (merge: MergeEvent): SlowMotionRequest => {
@@ -255,9 +283,9 @@ describe('BasicMergeCardProvider with Game', () => {
     expect(liveGame.getSnapshot().pendingCards).toHaveLength(SLOW_MOTION.cardCount);
     expect(offered.filter(isRiskCard)).toHaveLength(SLOW_MOTION.riskCardCount);
 
-    const risk = offered.find(isRiskCard);
+    const risk = offered.find((card) => card.id === cardId);
     if (risk === undefined) {
-      throw new Error(`deck seed ${deckSeed} offered no risk card`);
+      throw new Error(`deck did not offer ${cardId}`);
     }
     const before = liveGame.score;
     const dangerLineBefore = liveGame.getSnapshot().dangerLineY;
@@ -274,7 +302,9 @@ describe('BasicMergeCardProvider with Game', () => {
   }
 
   it('moves the danger line and charges the cost when that risk card is picked', () => {
-    const { riskId, before, after, dangerLineBefore, dangerLineAfter } = chooseRiskCardWith(4242);
+    const { riskId, before, after, dangerLineBefore, dangerLineAfter } = chooseRiskCardWith(
+      CARD_IDS.raiseDangerLine,
+    );
 
     expect(riskId).toBe(CARD_IDS.raiseDangerLine);
     expect(after).toBe(Math.max(0, before - MERGE_CARDS.dangerLineScoreCost));
@@ -286,7 +316,7 @@ describe('BasicMergeCardProvider with Game', () => {
   });
 
   it('takes a share of the score when the gamble card is picked', () => {
-    const { riskId, before, after } = chooseRiskCardWith(99);
+    const { riskId, before, after } = chooseRiskCardWith(CARD_IDS.scoreLoss);
 
     expect(riskId).toBe(CARD_IDS.scoreLoss);
     expect(after).toBe(before - Math.round(before * MERGE_CARDS.scoreLossRatio));

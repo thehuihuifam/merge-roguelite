@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.18 — 큰 공 스폰 리스크 카드 추가
+Active Next Action: Task 2.19 — 스폰 압박의 남은 발급 수 HUD 표시
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.17 완료 — 스폰 페널티를 Game의 신규 공 발급에 연결
+- 마지막 갱신: Task 2.18 완료 — 큰 공 스폰 리스크 카드 추가
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## 이번 루프 기록 (2026-09-25)
@@ -177,10 +177,14 @@ Active Next Action: Task 2.18 — 큰 공 스폰 리스크 카드 추가
   - 테스트 추가: `tests/gameSpawnPenalty.test.ts` 4건 — 카드 적용 직후 held/NEXT 불변, 시드 4242 에서 하한이 정확히 2회 물린 뒤(3·3) 원래 시드 스트림의 3·4번째 roll 로 복귀, 진행 중 적용 시 이후 드롭부터 발동, 게임 오버 후 재시작하면 하한 없는 새 스트림으로 복귀.
   - 문서: `docs/GDD.md` 3.2 에 신규 발급 한정 규칙(보이는 공 불변), `docs/ARCHITECTURE.md` 스폰 하한 행의 Game 연결 지점 갱신.
 
-- [ ] **Task 2.18: 큰 공 스폰 리스크 카드 추가**
+- [x] **Task 2.18: 큰 공 스폰 리스크 카드 추가**
   - 선행: Task 2.17. 신규: `src/systems/cards/SpawnLargerBallsCard.ts`, `tests/spawnLargerBallsCard.test.ts`. 기존 수정: `src/systems/cards/BasicMergeCardProvider.ts`, `src/config/gameConfig.ts`, `tests/basicMergeCardProvider.test.ts`.
   - 확장 방식: `RiskCard` 구현으로 다음 신규 발급 3회 티어 하한 3의 대가와 다음 머지 ×4 1회 보상을 제안한다. 컨텍스트 기능이 없으면 페널티 없는 보상을 주지 않고 적용을 거부한다. 기존 provider의 리스크 풀에 1장만 추가한다.
   - 완료 기준: 페널티/보상 콜백 인자, 미지원 컨텍스트 거부, 시드 결정성, 3장 중 리스크 정확히 1장 계약 테스트 통과. 설명에 하한/횟수/보상을 명시한다. 10분.
+  - 실제 구현: `src/systems/cards/SpawnLargerBallsCard.ts` 추가 — `RiskCard`(penalty `spawn_larger_balls`, id `risk-spawn-larger-balls`)가 `raiseSpawnTierFloor(3, 3)` 와 `pushScoreMultiplier(4, 1)` 를 한 번에 적용한다. `raiseSpawnTierFloor` 가 없는 구버전 컨텍스트에는 보상 없이 적용을 거부한다(공짜 ×4 금지). 수치는 `MERGE_CARDS.spawnLargerBalls*` 로 추가.
+  - 덱 연결: `BasicMergeCardProvider` 의 리스크 풀이 3종이 되고 `CARD_IDS.spawnLargerBalls` 가 `SPAWN_LARGER_BALLS_CARD_ID` 를 가리킨다(순환 import 없이 카드 파일이 id 를 소유).
+  - 테스트: `tests/spawnLargerBallsCard.test.ts` 5건(콜백 인자, 미지원 거부, 정체성/severity, 설명-수치 일치, 스폰 가능 범위·×4 우위). `tests/basicMergeCardProvider.test.ts` 는 3리스크 패 계약과 `draw(4,4)` 거부로 갱신하고, 실Game 통합 헬퍼 `chooseRiskCardWith` 가 카드 id 로 덱 시드를 탐색하도록 바꿔 세 번째 리스크 카드가 추가돼도 페널티별 검증이 유지된다.
+  - 문서: `docs/GDD.md` 3.2 에 수치·거부 규칙, `docs/ARCHITECTURE.md` 덱/확장 포인트 갱신, `CONTEXT.md` 미구현 목록에서 리스크 페널티 실동작 제거.
 
 - [ ] **Task 2.19: 스폰 압박의 남은 발급 수 HUD 표시**
   - 선행: Task 2.18. 신규: `src/render/SpawnPenaltyHudRenderer.ts`, `tests/spawnPenaltyHud.test.ts`. 기존 수정: `src/core/Game.ts`, `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`.

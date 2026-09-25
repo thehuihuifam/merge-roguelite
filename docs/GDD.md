@@ -67,7 +67,7 @@ v0.1.0 은 최소한의 juice 만 넣었다: 합체 시 새 공이 두 공의 �
 - 타입: `RiskCard extends MergeCard { kind: 'risk'; penalty: RiskPenaltyKind; severity: number }`. `RiskPenaltyKind = 'score_loss' | 'spawn_larger_balls' | 'raise_danger_line'`.
 - 계약: `IMergeCardProvider.draw(merge, count, riskCount)` 는 정확히 `riskCount` 장의 리스크 카드를 포함해야 한다(테스트로 강제).
 - 설계 원칙: 리스크 카드의 보상은 같은 세트의 보상 카드보다 **눈에 띄게** 커야 한다(예: ×4 배율 vs ×2). 대가는 즉시 보이고 되돌릴 수 없어야 한다. `severity` 는 UI 강도(테두리 색, 흔들림)에 쓴다.
-- 페널티별 의미: `score_loss` 는 현재 점수의 일정 비율 차감, `spawn_larger_balls` 는 다음 N 회 스폰 티어 하한 상승(보드 압박 — 하한은 그 시점 이후 굴리는 신규 발급에만 적용되고, 이미 손에 들렸거나 NEXT 로 보이는 공은 바뀌지 않는다. 런 재시작 시 해제), `raise_danger_line` 은 위험선을 아래로 이동(런의 남은 시간 단축)한다. `raise_danger_line` 은 50점을 지불하고 위험선을 30 보드 단위만큼 아래로 옮기는 대신 다음 머지에 ×4 배율을 준다. 값은 `MERGE_CARDS` 가 단일 진실이다. 두 이동형 페널티는 `MergeCardContext` 의 필드로 호스트에 위임한다(기존 필드 제거 없음).
+- 페널티별 의미: `score_loss` 는 현재 점수의 일정 비율 차감, `spawn_larger_balls` 는 다음 N 회 스폰 티어 하한 상승(보드 압박), `raise_danger_line` 은 위험선을 아래로 이동(런의 남은 시간 단축)한다. `raise_danger_line` 은 50점을 지불하고 위험선을 30 보드 단위만큼 아래로 옮기는 대신 다음 머지에 ×4 배율을 준다. `spawn_larger_balls`(Task 2.18) 는 다음 3회 신규 발급의 티어 하한을 3으로 올리는 대신 다음 머지에 ×4 배율을 준다 — 대가는 곧바로 보드 압박으로 돌아오고, 컨텍스트가 하한을 지원하지 않으면 카드가 보상 없이 적용을 거부한다. 값은 `MERGE_CARDS` 가 단일 진실이다. 페널티는 `MergeCardContext` 의 `shiftDangerLine` / `raiseSpawnTierFloor` 로 호스트에 위임하고, 하한은 그 시점 이후 신규 발급에만 적용된다(이미 보이는 공 불변, 런 재시작 시 해제).
 - v0.1.0 범위: 타입, 타입 가드 `isRiskCard`, 컨텍스트만.
 
 ### 3.3 근접 실패 연출 (Near-Miss Presentation)

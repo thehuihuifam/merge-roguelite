@@ -99,6 +99,14 @@ export const MERGE_CARDS = {
   dangerLineMultiplier: 4,
   dangerLineMultiplierUses: 1,
   dangerLineSeverity: 0.5,
+  /** Risk: floor tier forced on new dispenser balls (Task 2.18). */
+  spawnLargerBallsFloor: 3,
+  /** Risk: how many new dispenser balls the floor applies to. */
+  spawnLargerBallsCount: 3,
+  /** Risk: multiplier granted after accepting the spawn pressure. */
+  spawnLargerBallsMultiplier: 4,
+  spawnLargerBallsMultiplierUses: 1,
+  spawnLargerBallsSeverity: 0.6,
 } as const;
 
 /**

@@ -5,6 +5,10 @@ import type {
   MergeCardContext,
   RiskCard,
 } from '@/core/interfaces/IMergeCard';
+import {
+  SPAWN_LARGER_BALLS_CARD_ID,
+  createSpawnLargerBallsCard,
+} from '@/systems/cards/SpawnLargerBallsCard';
 import type { SeededRandom } from '@/core/rng/SeededRandom';
 import type { MergeEvent } from '@/core/types';
 
@@ -15,6 +19,7 @@ export const CARD_IDS = {
   tripleMultiplier: 'reward-multiplier-x3',
   scoreLoss: 'risk-score-loss',
   raiseDangerLine: 'risk-raise-danger-line',
+  spawnLargerBalls: SPAWN_LARGER_BALLS_CARD_ID,
 } as const;
 
 /** Reward: pay the points of the merge that triggered this choice one more time. */
@@ -97,7 +102,8 @@ export function createRaiseDangerLineCard(): RiskCard {
 }
 
 /**
- * The default deck: three reward cards and two risk cards. Draws are sampled
+ * The default deck: three reward cards and three risk cards (the third risk
+ * card, spawn pressure, arrived with Task 2.18). Draws are sampled
  * from an injected `SeededRandom`, so the same seed always offers the same
  * hand, and exactly `riskCount` of the returned cards are risk cards.
  */
@@ -147,7 +153,7 @@ export class BasicMergeCardProvider implements IMergeCardProvider {
   }
 
   private riskPool(): RiskCard[] {
-    return [createScoreLossCard(), createRaiseDangerLineCard()];
+    return [createScoreLossCard(), createRaiseDangerLineCard(), createSpawnLargerBallsCard()];
   }
 
   /** Takes `take` distinct cards; the pool must hold at least that many. */
