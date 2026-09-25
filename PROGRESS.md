@@ -113,7 +113,11 @@ Active Next Action: Task 2.14
   - `PointerInput` 이 상단 숫자열과 숫자패드의 1/2/3 키를 0/1/2 카드 인덱스로 전달한다. 실제 카드 선택에 성공했을 때만 기본 동작을 막고, Ctrl/Alt/Meta/Shift 조합 단축키는 가로채지 않는다.
   - `createApp.ts` 의 공통 `choosePendingCard` 가 마우스/터치와 키보드 선택을 모두 `game.chooseCard` 로 연결하고, 성공 시 카드 선택 효과음을 낸다.
   - 테스트 추가: `tests/pointerInput.test.ts` 3건 — 숫자열/숫자패드 인덱스 매핑, 선택 실패 시 기본 동작 유지, 수정키 단축키 비간섭.
-- [ ] Task 2.12: 라운드 HUD 표시(라운드 번호 · 목표 진행도 · 남은 드롭) — 지금은 라운드 진행이 테스트로만 관찰되고 화면에 나오지 않는다(Task 2.2 에서 발견). `GameSnapshot` 확장 여부와 함께 착수 시 세부 스펙을 먼저 쪼갠다.
+- [x] **Task 2.12: 라운드 HUD 표시(라운드 번호 · 목표 진행도 · 남은 드롭)**
+  - `src/core/interfaces/IRoundSystem.ts` 에 `RoundHudState`(index/targetScore/scoreProgress/dropsUsed/dropBudget)와 선택 필드 `getHudState?()` 추가(인터페이스 확장 규칙 준수). `BasicRoundSystem` 이 실구현(진행도는 라운드 시작점 델타, 0 하한 클램프), `RoundRunner.getHudState()` 가 위임하며 HUD 미지원 구 시스템에는 `null` 반환.
+  - `GameSnapshot` 에 선택 필드 `round?: RoundHudState` 추가 — `Game` 은 손대지 않고 `createApp.ts` 렌더 단계에서 `{ ...game.getSnapshot(), round }` 로 합성해 코어가 라운드 구조를 모르게 유지(경계 준수).
+  - `HudRenderer.drawHud` 가 `round` 존재 시 좌측 컬럼 BEST 아래에 `ROUND n · m DROPS` + `진행도 / 목표` 2행을 텍스트로 표시(위험선 y=120과 4px 이상 간격). `docs/GDD.md` 4절과 `docs/ARCHITECTURE.md` 라운드 행 갱신.
+  - 테스트 추가: `tests/roundHud.test.ts` 9건 — 상태 조회(초기/추적/어드밴스/음수 클램프), Runner 위임·구버전 null, 그리기 3건(표시·드롭 0 클램프·미표시 시 기존 HUD 유지).
 - [x] **Task 2.13: 라운드 클리어 보상을 자동 지급 대신 카드 선택지로**
   - `Game.openRewardChoice(cards)` 추가 — 머지 선택과 같은 `slowmo_select`·오버레이·포인터/1-2-3 입력·400ms(`SLOW_MOTION`) 타임아웃을 재사용하는 합성 머지 기반 선택창. 바쁘거나(`mergeMoment` 불가) 빈 패면 `false`.
   - `ISlowMotionSelector` 에 선택 필드 `offerCards?(merge, cards)` 추가, `CardSlowMotionSelector` 가 제시 패를 기억해 타임아웃이 화면에 보인 비-리스크 카드를 고르게 했다(라운드 패는 전부 reward라 선두 `+N점` 확정).
