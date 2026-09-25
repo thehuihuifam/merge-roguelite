@@ -1,4 +1,4 @@
-import { BOARD, FX, SPAWN_Y } from '@/config/gameConfig';
+import { BOARD, FX, GAME_OVER, SPAWN_Y } from '@/config/gameConfig';
 import { getTierSpec } from '@/core/ball/BallFactory';
 import { drawBalls, pruneBallFx, triggerMergePop, updateBallFx } from '@/render/BallRenderer';
 import { drawCardOverlay } from '@/render/CardOverlayRenderer';
@@ -9,13 +9,8 @@ import {
   drawRoundProgressGauge,
   roundProgressOf,
 } from '@/render/DiegeticBoardRenderer';
-import {
-  HudProgressionAnimator,
-  drawGameOver,
-  drawHeldBall,
-  drawHud,
-  drawIdle,
-} from '@/render/HudRenderer';
+import { HudProgressionAnimator, drawHeldBall, drawHud, drawIdle } from '@/render/HudRenderer';
+import { GameOverPresenter, drawGameOver } from '@/render/GameOverRenderer';
 import { NearMissVignetteAnimator, drawNearMissVignette } from '@/render/NearMissVignetteRenderer';
 import { drawSpawnPenaltyHud } from '@/render/SpawnPenaltyHudRenderer';
 import { PostProcessPipeline } from '@/render/PostProcessPipeline';
@@ -54,6 +49,7 @@ export class CanvasRenderer {
   private readonly vignette = new NearMissVignetteAnimator();
   private readonly hudProgression = new HudProgressionAnimator();
   private readonly roundGauge = new RoundGaugeAnimator();
+  private readonly gameOverPresenter = new GameOverPresenter();
   private readonly clock: Clock;
   private readonly particles: IParticleSystem | undefined;
   private lastFrameMs: number | null = null;
@@ -238,6 +234,11 @@ export class CanvasRenderer {
 
     this.updateFx(deltaMs);
     this.hudProgression.update(snapshot, deltaMs);
+    this.gameOverPresenter.update(snapshot, frameMs);
+    // NEW BEST celebration: the screen's colours split on each badge pulse.
+    if (this.gameOverPresenter.consumeAberrationPulse(frameMs, snapshot.isNewBest === true)) {
+      this.triggerChromaticAberration(GAME_OVER.newBest.aberration);
+    }
     const roundProgress = roundProgressOf(snapshot);
     this.roundGauge.update(roundProgress, deltaMs);
     const activeIds = new Set<number>(snapshot.balls.map((b) => b.id));
@@ -301,7 +302,7 @@ export class CanvasRenderer {
     if (snapshot.state === 'idle') {
       drawIdle(ctx);
     } else if (snapshot.state === 'game_over') {
-      drawGameOver(ctx, snapshot);
+      drawGameOver(ctx, snapshot, this.gameOverPresenter);
     }
 
     // WebGL path: the scene above landed on the offscreen canvas — upload it

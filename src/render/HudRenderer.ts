@@ -230,36 +230,6 @@ export function drawHeldBall(
   drawBallShape(ctx, snapshot.held.x, spawnY, snapshot.held.tier, 1, snapshot.held.special);
 }
 
-export function drawGameOver(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): void {
-  const { display, heading, body, caption } = DESIGN.fontSize;
-  const { medium, bold, black } = DESIGN.fontWeight;
-  ctx.save();
-  ctx.fillStyle = PALETTE.overlay;
-  ctx.fillRect(0, 0, BOARD.width, BOARD.height);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle = PALETTE.text.primary;
-  ctx.font = `${black} ${display}px ${FONT}`;
-  ctx.fillText(TEXT.runOverTitle, BOARD.width / 2, BOARD.height / 2 - 50);
-  ctx.font = `${bold} ${heading}px ${FONT}`;
-  ctx.fillText(
-    TEXT.scoreSummary(snapshot.score.toLocaleString('ko-KR')),
-    BOARD.width / 2,
-    BOARD.height / 2,
-  );
-  ctx.fillStyle = PALETTE.text.secondary;
-  ctx.font = `${medium} ${body}px ${FONT}`;
-  ctx.fillText(
-    TEXT.bestSummary(snapshot.best.toLocaleString('ko-KR')),
-    BOARD.width / 2,
-    BOARD.height / 2 + 32,
-  );
-  ctx.fillStyle = PALETTE.text.dim;
-  ctx.font = `${medium} ${caption}px ${FONT}`;
-  ctx.fillText(TEXT.restartHint, BOARD.width / 2, BOARD.height / 2 + 80);
-  ctx.restore();
-}
-
 export function drawIdle(ctx: CanvasRenderingContext2D): void {
   const { display, body } = DESIGN.fontSize;
   const { medium, black } = DESIGN.fontWeight;

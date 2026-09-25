@@ -348,6 +348,45 @@ export const HUD_LAYOUT = {
   },
 } as const;
 
+/**
+ * Game-over screen (UX overhaul session B, Task 3). Consumed by
+ * `src/render/GameOverRenderer.ts`: count-up timing, the NEW BEST celebration
+ * and every layout slot. Sizes derive from the session-A DESIGN tokens.
+ */
+export const GAME_OVER = {
+  /** Score count-up (0 → final) duration, ms — eased with `easeOutCubic`. */
+  countUpMs: 800,
+  /** The final score is the biggest number in the game: display ×1.5. */
+  scoreFontSize: Math.round(DESIGN.fontSize.display * 1.5),
+  /** NEW BEST celebration. */
+  newBest: {
+    /** Chromatic-aberration pulse strength fired while the badge shows. */
+    aberration: 0.014,
+    /** Period of the badge heartbeat and the aberration pulses, ms. */
+    pulsePeriodMs: 900,
+    /** Number of aberration pulses — the celebration has an end. */
+    pulseCount: 4,
+    /** Badge heartbeat scale range: 1 → this value. */
+    badgeScaleMax: 1.06,
+    badgeWidth: 132,
+    badgeHeight: 30,
+  },
+  /** Vertical layout slots (text baseline centres), board units. */
+  layout: {
+    titleY: 176,
+    badgeY: 236,
+    scoreLabelY: 288,
+    scoreY: 330,
+    bestY: 398,
+    roundY: 428,
+    buttonY: 500,
+    buttonWidth: 208,
+    buttonHeight: 52,
+    buttonRadius: CARD_OVERLAY.cornerRadius,
+    hintY: 592,
+  },
+} as const;
+
 /** Audio tuning (Task 2.6). Consumed by WebAudioSystem. */
 export const AUDIO = {
   /** Base frequency for tier 0 merge, Hz. */
@@ -452,6 +491,12 @@ export const TEXT = {
   // Game over / idle
   runOverTitle: '런 종료',
   restartHint: '클릭/터치 또는 R키로 재시작',
+  /** NEW BEST badge (session B game-over redesign). */
+  newBestBadge: 'NEW BEST',
+  /** Restart button label (session B game-over redesign). */
+  restartButton: '다시 시작',
+  /** Round reached line, e.g. "라운드 4 도달". */
+  roundReached: (round: number): string => `라운드 ${round} 도달`,
   gameTitle: '머지 로그라이트',
   startHint: '클릭/터치로 시작',
   // Dynamic templates — functions return Korean strings
