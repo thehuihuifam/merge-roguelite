@@ -22,6 +22,21 @@ export function drawHud(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): 
   ctx.font = `700 16px ${FONT}`;
   ctx.fillText(snapshot.best.toLocaleString('en-US'), 14, 66);
 
+  if (snapshot.round !== undefined) {
+    const dropsLeft = Math.max(0, snapshot.round.dropBudget - snapshot.round.dropsUsed);
+    ctx.fillStyle = PALETTE.textMuted;
+    ctx.font = `600 12px ${FONT}`;
+    ctx.textAlign = 'left';
+    ctx.fillText(`ROUND ${snapshot.round.index} · ${dropsLeft} DROPS`, 14, 88);
+    ctx.fillStyle = PALETTE.text;
+    ctx.font = `700 14px ${FONT}`;
+    ctx.fillText(
+      `${snapshot.round.scoreProgress.toLocaleString('en-US')} / ${snapshot.round.targetScore.toLocaleString('en-US')}`,
+      14,
+      102,
+    );
+  }
+
   ctx.fillStyle = PALETTE.textMuted;
   ctx.font = `600 12px ${FONT}`;
   ctx.textAlign = 'right';

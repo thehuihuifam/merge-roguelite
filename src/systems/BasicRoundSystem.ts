@@ -1,5 +1,5 @@
 import { ROUNDS } from '@/config/gameConfig';
-import type { IRoundSystem, RoundDefinition } from '@/core/interfaces/IRoundSystem';
+import type { IRoundSystem, RoundDefinition, RoundHudState } from '@/core/interfaces/IRoundSystem';
 
 /**
  * Score-target rounds (Task 2.2). Each round must earn `targetScore` points
@@ -38,6 +38,17 @@ export class BasicRoundSystem implements IRoundSystem {
 
   isDropBudgetExhausted(): boolean {
     return this.dropsUsed >= this.currentRound().dropBudget;
+  }
+
+  getHudState(): RoundHudState {
+    const round = this.currentRound();
+    return {
+      index: round.index,
+      targetScore: round.targetScore,
+      scoreProgress: Math.max(0, this.currentScore - this.scoreAtRoundStart),
+      dropsUsed: this.dropsUsed,
+      dropBudget: round.dropBudget,
+    };
   }
 
   advance(): RoundDefinition {

@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.12
+Active Next Action: Task 2.13
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.11 완료 — 키보드 카드 선택
+- 마지막 갱신: Task 2.12 완료 — 라운드 HUD 표시
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog

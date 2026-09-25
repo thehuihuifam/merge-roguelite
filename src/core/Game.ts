@@ -30,6 +30,7 @@ import type {
   SpecialBallKind,
 } from '@/core/interfaces/ISpecialBall';
 import type { MergeCard, MergeCardContext } from '@/core/interfaces/IMergeCard';
+import type { RoundHudState } from '@/core/interfaces/IRoundSystem';
 import type { IScoreModifier } from '@/core/interfaces/IScoreModifier';
 import type { ISlowMotionSelector, SlowMotionRequest } from '@/core/interfaces/ISlowMotionSelector';
 import type { GameState } from '@/core/state/GameState';
@@ -91,6 +92,12 @@ export interface GameSnapshot {
   readonly seed: number;
   readonly chainIndex: number;
   readonly nextSpecial: SpecialBallKind | null;
+  /**
+   * Round progress for the HUD (Task 2.12). `Game` never sets it — the app
+   * layer merges `RoundRunner.getHudState()` into the rendered snapshot, so
+   * the core stays unaware of the round structure. Absent means no display.
+   */
+  readonly round?: RoundHudState;
 }
 
 /**

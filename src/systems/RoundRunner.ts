@@ -1,6 +1,6 @@
 import type { Game } from '@/core/Game';
 import type { MergeCard } from '@/core/interfaces/IMergeCard';
-import type { IRoundSystem, RoundDefinition } from '@/core/interfaces/IRoundSystem';
+import type { IRoundSystem, RoundDefinition, RoundHudState } from '@/core/interfaces/IRoundSystem';
 
 /**
  * Bridges an `IRoundSystem` to a running `Game` through the event bus (Task
@@ -32,6 +32,14 @@ export class RoundRunner {
         this.handleScore(score);
       }),
     );
+  }
+
+  /**
+   * HUD snapshot of the current round, or null when the round system does not
+   * expose one. The app layer merges this into the rendered `GameSnapshot`.
+   */
+  getHudState(): RoundHudState | null {
+    return this.rounds.getHudState?.() ?? null;
   }
 
   /** Detaches every event listener. */
