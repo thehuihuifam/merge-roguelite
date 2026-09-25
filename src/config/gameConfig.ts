@@ -255,6 +255,70 @@ export const SPAWN_PENALTY_HUD = {
   y: 92,
 } as const;
 
+/**
+ * HUD layout (UX overhaul session B, Task 1). Every HUD coordinate, size and
+ * margin lives here, derived from the session-A DESIGN tokens — renderers hold
+ * no layout numbers of their own.
+ *
+ * Information hierarchy (progressive disclosure):
+ * - primary   → SCORE, top centre, always, biggest and brightest;
+ * - secondary → BEST (top-left) and NEXT (top-right corner), always, caption;
+ * - tertiary  → round progress, drops left, SLOW badge, spawn penalty:
+ *                each rendered only while it matters.
+ */
+export const HUD_LAYOUT = {
+  /** Shared left/right gutter for the corner blocks, board units. */
+  margin: DESIGN.space.lg,
+  /** Primary: current score — top centre, `fontSize.display`. */
+  score: {
+    labelY: DESIGN.space.sm,
+    valueY: DESIGN.space.sm + DESIGN.fontSize.caption + DESIGN.space.xs,
+  },
+  /** Secondary: best score — top-left corner, `fontSize.caption`. */
+  best: {
+    labelY: DESIGN.space.sm,
+    valueY: DESIGN.space.sm + DESIGN.fontSize.caption + DESIGN.space.xs,
+  },
+  /** Secondary: next-ball preview — top-right corner, caption label. */
+  next: {
+    labelY: DESIGN.space.sm,
+    /** Preview centre, board units. */
+    previewX: BOARD.width - DESIGN.space.lg - 20,
+    previewY: 48,
+    /** Preview balls are scaled down to at most this radius. */
+    previewRadius: 18,
+  },
+  /** Tertiary: round block — left column below BEST. */
+  round: {
+    /** Round readout (body size) during the emphasis window. */
+    emphasizedY: 44,
+    /** Target-progress line under the emphasized readout. */
+    progressY: 64,
+    /** Compact round label (caption) after the emphasis window. */
+    quietY: 44,
+    /** Target-progress line while quiet. */
+    quietProgressY: 58,
+    /** Low-drops warning line while quiet. */
+    dropsY: 72,
+    /** How long a round's readout stays emphasized after it starts, ms. */
+    emphasisMs: 3000,
+    /** Drops left at or below this count switch to the warning emphasis. */
+    lowDropsThreshold: 5,
+    /** Slight scale-up applied to the low-drops warning line. */
+    lowDropsScale: 1.1,
+  },
+  /** Tertiary: slow-motion badge — centred under SCORE, only while slowed. */
+  slowBadge: {
+    /** One spacing step under the score value block. */
+    y:
+      DESIGN.space.sm +
+      DESIGN.fontSize.caption +
+      DESIGN.space.xs +
+      DESIGN.fontSize.display +
+      DESIGN.space.sm,
+  },
+} as const;
+
 /** Audio tuning (Task 2.6). Consumed by WebAudioSystem. */
 export const AUDIO = {
   /** Base frequency for tier 0 merge, Hz. */
@@ -365,6 +429,10 @@ export const TEXT = {
   slowMotionBadgeDynamic: (scaleText: string): string => `슬로우 ×${scaleText}`,
   roundStatus: (index: number, dropsLeft: number): string =>
     `라운드 ${index} · ${dropsLeft}개 남음`,
+  /** Quiet-mode round label (session B hierarchy): the round number alone. */
+  roundIndexLabel: (index: number): string => `라운드 ${index}`,
+  /** Low-drops warning line (session B hierarchy). */
+  dropsRemaining: (dropsLeft: number): string => `${dropsLeft}개 남음`,
   scoreProgress: (progress: number, target: number): string =>
     `${progress.toLocaleString('ko-KR')} / ${target.toLocaleString('ko-KR')}`,
   /** Card overlay hint: the choice has no time limit. */

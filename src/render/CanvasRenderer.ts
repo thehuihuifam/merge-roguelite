@@ -3,7 +3,13 @@ import { getTierSpec } from '@/core/ball/BallFactory';
 import { drawBalls, pruneBallFx, triggerMergePop, updateBallFx } from '@/render/BallRenderer';
 import { drawCardOverlay } from '@/render/CardOverlayRenderer';
 import { drawDangerLine } from '@/render/DangerLineRenderer';
-import { drawGameOver, drawHeldBall, drawHud, drawIdle } from '@/render/HudRenderer';
+import {
+  HudProgressionAnimator,
+  drawGameOver,
+  drawHeldBall,
+  drawHud,
+  drawIdle,
+} from '@/render/HudRenderer';
 import { NearMissVignetteAnimator, drawNearMissVignette } from '@/render/NearMissVignetteRenderer';
 import { drawSpawnPenaltyHud } from '@/render/SpawnPenaltyHudRenderer';
 import { PostProcessPipeline } from '@/render/PostProcessPipeline';
@@ -40,6 +46,7 @@ export class CanvasRenderer {
   private readonly pipeline: PostProcessPipeline | null;
   private readonly offscreen: HTMLCanvasElement | null;
   private readonly vignette = new NearMissVignetteAnimator();
+  private readonly hudProgression = new HudProgressionAnimator();
   private readonly clock: Clock;
   private readonly particles: IParticleSystem | undefined;
   private lastFrameMs: number | null = null;
@@ -223,6 +230,7 @@ export class CanvasRenderer {
     this.lastFrameMs = frameMs;
 
     this.updateFx(deltaMs);
+    this.hudProgression.update(snapshot, deltaMs);
     const activeIds = new Set<number>(snapshot.balls.map((b) => b.id));
     pruneBallFx(activeIds);
 
@@ -273,7 +281,7 @@ export class CanvasRenderer {
       drawCardOverlay(ctx, snapshot.pendingCards);
     }
 
-    drawHud(ctx, snapshot);
+    drawHud(ctx, snapshot, this.hudProgression);
     drawSpawnPenaltyHud(ctx, snapshot);
 
     if (snapshot.state === 'idle') {
