@@ -204,11 +204,13 @@ export function drawHud(
 /**
  * Diegetic NEXT preview (session B, Task 2): the mini ball floats right next
  * to the spawn point at the top-centre column — where the held ball and the
- * aim guide already live — with its caption label just under it, so "what
- * comes next" is read in the same glance as "where I am aiming".
+ * aim guide already live — and the "다음" caption is drawn as part of the same
+ * group, a fixed `labelOffsetY` under the ball's centre (PR #19 follow-up:
+ * the label had drifted away from the ball). The label is drawn here and
+ * nowhere else — exactly one NEXT label exists on screen.
  */
 function drawNextPreview(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot): void {
-  const { offsetX, previewY, previewRadius, labelGap } = HUD_LAYOUT.next;
+  const { offsetX, previewY, previewRadius, labelOffsetY } = HUD_LAYOUT.next;
   const centerX = BOARD.width / 2 + offsetX;
   const nextSpec = getTierSpec(snapshot.nextTier);
   const previewScale = Math.min(1, previewRadius / nextSpec.radius);
@@ -223,7 +225,7 @@ function drawNextPreview(ctx: CanvasRenderingContext2D, snapshot: GameSnapshot):
   ctx.textAlign = 'center';
   ctx.fillStyle = PALETTE.text.secondary;
   ctx.font = `${DESIGN.fontWeight.medium} ${DESIGN.fontSize.caption}px ${FONT}`;
-  ctx.fillText(TEXT.nextLabel, centerX, previewY + previewRadius + labelGap);
+  ctx.fillText(TEXT.nextLabel, centerX, previewY + labelOffsetY);
   ctx.restore();
 }
 

@@ -273,6 +273,21 @@ export const SPAWN_PENALTY_HUD = {
 } as const;
 
 /**
+ * NEXT preview ball geometry (see `HUD_LAYOUT.next`). Extracted so
+ * `labelOffsetY` derives from the same numbers instead of duplicating them.
+ */
+const NEXT_PREVIEW = {
+  /** Horizontal offset of the preview centre from the spawn column. */
+  offsetX: 56,
+  /** Preview centre height — the spawn height. */
+  previewY: SPAWN_Y,
+  /** Preview balls are scaled down to at most this radius. */
+  previewRadius: 18,
+  /** Clear gap between the preview ball's underside and its caption. */
+  labelGap: DESIGN.space.xs,
+} as const;
+
+/**
  * HUD layout (UX overhaul session B, Task 1). Every HUD coordinate, size and
  * margin lives here, derived from the session-A DESIGN tokens — renderers hold
  * no layout numbers of their own.
@@ -315,16 +330,14 @@ export const HUD_LAYOUT = {
    * Secondary: next-ball preview — diegetic placement (session B, Task 2):
    * beside the actual spawn point (board top centre, `SPAWN_Y`) instead of a
    * fixed screen corner, so the player reads it together with the aim guide.
+   * The caption label and the ball are ONE group: `labelOffsetY` pins the
+   * label a fixed distance under the ball's centre, so they can never drift
+   * apart (PR #19 follow-up: the label had detached toward the top-right).
    */
   next: {
-    /** Horizontal offset of the preview centre from the spawn column. */
-    offsetX: 56,
-    /** Preview centre height — the spawn height. */
-    previewY: SPAWN_Y,
-    /** Preview balls are scaled down to at most this radius. */
-    previewRadius: 18,
-    /** Caption label sits this far under the preview ball. */
-    labelGap: DESIGN.space.xs,
+    ...NEXT_PREVIEW,
+    /** Centre-to-label-top distance: the label hugs the ball's underside. */
+    labelOffsetY: NEXT_PREVIEW.previewRadius + NEXT_PREVIEW.labelGap,
   },
   /** Tertiary: round block — left column below BEST. */
   round: {
