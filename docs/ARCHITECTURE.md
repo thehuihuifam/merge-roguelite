@@ -55,7 +55,7 @@ PointerInput ──aim(x)/drop()──▶ Game
                                  ▼
              GameLoop.render ──▶ Game.getSnapshot() ──▶ CanvasRenderer.render(snapshot)
                                     (state === 'slowmo_select' 이면 카드 오버레이를 합성하고,
-                                     pointerup 은 cardIndexAt 히트 테스트로 chooseCard 에 연결)
+                                     pointerup 은 cardIndexAt, 1/2/3 키는 카드 인덱스로 chooseCard 에 연결)
 ```
 
 렌더러는 `GameSnapshot` 만 읽는다. 스냅샷은 매 프레임 새로 만들어지며 `balls` 는 레지스트리 복사본이다(렌더러가 위치를 바꿀 수 없다).

@@ -30,10 +30,31 @@ function dispatchPointer(
   target.dispatchEvent(event);
 }
 
+interface KeyModifiers {
+  readonly altKey?: boolean;
+  readonly ctrlKey?: boolean;
+  readonly metaKey?: boolean;
+  readonly shiftKey?: boolean;
+}
+
+function dispatchKey(target: EventTarget, code: string, modifiers: KeyModifiers = {}): Event {
+  const event = new Event('keydown', { cancelable: true });
+  Object.defineProperties(event, {
+    code: { value: code },
+    altKey: { value: modifiers.altKey ?? false },
+    ctrlKey: { value: modifiers.ctrlKey ?? false },
+    metaKey: { value: modifiers.metaKey ?? false },
+    shiftKey: { value: modifiers.shiftKey ?? false },
+  });
+  target.dispatchEvent(event);
+  return event;
+}
+
 function createHandlers(): PointerInputHandlers & {
   onAim: ReturnType<typeof vi.fn>;
   onDrop: ReturnType<typeof vi.fn>;
   onSelect: ReturnType<typeof vi.fn>;
+  onChooseCard: ReturnType<typeof vi.fn>;
   onRestart: ReturnType<typeof vi.fn>;
   onNudge: ReturnType<typeof vi.fn>;
 } {
@@ -41,6 +62,7 @@ function createHandlers(): PointerInputHandlers & {
     onAim: vi.fn((_clientX: number): void => undefined),
     onDrop: vi.fn((_clientX: number): void => undefined),
     onSelect: vi.fn((_clientX: number, _clientY: number): void => undefined),
+    onChooseCard: vi.fn((_cardIndex: number): boolean => true),
     onRestart: vi.fn((): void => undefined),
     onNudge: vi.fn((_deltaX: number): void => undefined),
   };
@@ -107,6 +129,56 @@ describe('PointerInput touch/pointer handling', () => {
 
     expect(handlers.onSelect).toHaveBeenCalledExactlyOnceWith(100, 140);
     expect(handlers.onDrop).toHaveBeenCalledExactlyOnceWith(100);
+
+    input.detach();
+  });
+
+  it('maps top-row and numpad 1/2/3 keys to the corresponding card indexes', () => {
+    const target = new FakePointerTarget();
+    const keyboardTarget = new EventTarget();
+    vi.stubGlobal('window', keyboardTarget);
+    const handlers = createHandlers();
+    const input = new PointerInput(target as unknown as HTMLElement, handlers);
+    input.attach();
+
+    const codes = ['Digit1', 'Digit2', 'Digit3', 'Numpad1', 'Numpad2', 'Numpad3'];
+    const events = codes.map((code) => dispatchKey(keyboardTarget, code));
+
+    expect(handlers.onChooseCard.mock.calls).toEqual([[0], [1], [2], [0], [1], [2]]);
+    expect(events.every((event) => event.defaultPrevented)).toBe(true);
+
+    input.detach();
+  });
+
+  it('does not prevent a card key when the app declines the selection', () => {
+    const target = new FakePointerTarget();
+    const keyboardTarget = new EventTarget();
+    vi.stubGlobal('window', keyboardTarget);
+    const handlers = createHandlers();
+    handlers.onChooseCard.mockReturnValue(false);
+    const input = new PointerInput(target as unknown as HTMLElement, handlers);
+    input.attach();
+
+    const event = dispatchKey(keyboardTarget, 'Digit1');
+
+    expect(handlers.onChooseCard).toHaveBeenCalledExactlyOnceWith(0);
+    expect(event.defaultPrevented).toBe(false);
+
+    input.detach();
+  });
+
+  it('does not intercept modified number shortcuts', () => {
+    const target = new FakePointerTarget();
+    const keyboardTarget = new EventTarget();
+    vi.stubGlobal('window', keyboardTarget);
+    const handlers = createHandlers();
+    const input = new PointerInput(target as unknown as HTMLElement, handlers);
+    input.attach();
+
+    const event = dispatchKey(keyboardTarget, 'Digit1', { ctrlKey: true });
+
+    expect(handlers.onChooseCard).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
 
     input.detach();
   });

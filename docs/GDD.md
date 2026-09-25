@@ -53,6 +53,7 @@ v0.1.0 은 최소한의 juice 만 넣었다: 합체 시 새 공이 두 공의 �
 - 트리거: 합체가 해결된 직후 `ISlowMotionSelector.onMergeMoment(merge)` 가 호출된다. 일반 결과 티어 2(값 8) 이상과 최대 티어 소멸(`resultTier === null`)에서 선택을 연다. 구현체가 `SlowMotionRequest { durationMs, timeScale, cards }` 를 반환하면 발동, `null` 이면 무시. 기본 파라미터는 `SLOW_MOTION = { durationMs: 400, timeScale: 0.25, cardCount: 3, riskCardCount: 1 }`.
 - 시간: `TimeController.startSlowMotion` 으로 게임 시간이 0.25배가 된다. 물리는 계속 진행되므로 슬로우모션 중에도 공은 (느리게) 구른다. 실시간 400ms 동안 선택하지 않으면 `onTimeout(merge)` 가 대신 카드를 고르거나(`MergeCard` 반환) 아무 것도 적용하지 않는다(`null`).
 - 상태: `aiming` 또는 `dropping` 에서 `slowmo_select` 로 진입하고, 선택/타임아웃 후 진입 전 상태로 복귀한다(`resumeAiming` / `resumeDropping`). `slowmo_select` 중에는 드롭이 막힌다.
+- 입력: 포인터/터치로 카드를 누르거나 숫자열/숫자패드의 1/2/3 키로 해당 카드를 선택한다.
 - 카드 적용: `Game.chooseCard(card)` 가 `MergeCardContext { merge, currentScore, addScore, pushScoreMultiplier, shiftDangerLine }` 를 넘겨 `card.apply` 를 실행한다. `shiftDangerLine(deltaY)` 는 보드 단위로 위험선을 움직이고, 양수는 화면 아래 방향이다.
 - v0.1.0 범위: 인터페이스, 상태 전이, 시간 배율, 컨텍스트, `NoopSlowMotionSelector` 까지. 카드 덱과 UI 는 Task 1.2~1.4.
 - 발동 빈도 가이드(v0.2.0): 일반 결과 티어 2(값 8) 이상 머지는 1분에 2~4회를 목표로 한다. 최대 티어 소멸은 희귀한 마일스톤이므로 별도로 항상 선택을 연다. 너무 잦으면 피로, 너무 드물면 잊힌다.

@@ -152,6 +152,18 @@ export function createApp(root: HTMLElement): App {
     game.start(createSeed());
   };
 
+  const choosePendingCard = (cardIndex: number): boolean => {
+    if (game.state !== 'slowmo_select') {
+      return false;
+    }
+    const card = game.getSnapshot().pendingCards[cardIndex];
+    if (card === undefined || !game.chooseCard(card)) {
+      return false;
+    }
+    audio.play('card_pick', { volume: 0.7 });
+    return true;
+  };
+
   const input = new PointerInput(canvas, {
     onAim: (clientX: number): void => {
       lastAimX = renderer.toBoardX(clientX);
@@ -177,17 +189,11 @@ export function createApp(root: HTMLElement): App {
       }
       const cards = game.getSnapshot().pendingCards;
       const index = cardIndexAt(cards, renderer.toBoardX(clientX), renderer.toBoardY(clientY));
-      if (index === null) {
-        return;
-      }
-      const card = cards[index];
-      if (card === undefined) {
-        return;
-      }
-      if (game.chooseCard(card)) {
-        audio.play('card_pick', { volume: 0.7 });
+      if (index !== null) {
+        choosePendingCard(index);
       }
     },
+    onChooseCard: (cardIndex: number): boolean => choosePendingCard(cardIndex),
     onRestart: (): void => {
       if (game.state === 'game_over' || game.state === 'idle') {
         beginRun();

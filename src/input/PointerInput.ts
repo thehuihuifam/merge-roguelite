@@ -3,6 +3,8 @@ export interface PointerInputHandlers {
   readonly onDrop: (clientX: number) => void;
   /** Pointer release in board coordinates; used to pick a merge card. */
   readonly onSelect: (clientX: number, clientY: number) => void;
+  /** One-based card key mapped to a zero-based index; true when a card was chosen. */
+  readonly onChooseCard: (cardIndex: number) => boolean;
   readonly onRestart: () => void;
   readonly onNudge: (deltaX: number) => void;
 }
@@ -68,6 +70,18 @@ export class PointerInput {
           event.preventDefault();
           this.handlers.onNudge(12);
           break;
+        case 'Digit1':
+        case 'Numpad1':
+          this.chooseCardByKeyboard(event, 0);
+          break;
+        case 'Digit2':
+        case 'Numpad2':
+          this.chooseCardByKeyboard(event, 1);
+          break;
+        case 'Digit3':
+        case 'Numpad3':
+          this.chooseCardByKeyboard(event, 2);
+          break;
         case 'KeyR':
           this.handlers.onRestart();
           break;
@@ -82,6 +96,15 @@ export class PointerInput {
       dispose();
     }
     this.activePointerId = null;
+  }
+
+  private chooseCardByKeyboard(event: KeyboardEvent, cardIndex: number): void {
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return;
+    }
+    if (this.handlers.onChooseCard(cardIndex)) {
+      event.preventDefault();
+    }
   }
 
   private listen<K extends keyof HTMLElementEventMap>(
