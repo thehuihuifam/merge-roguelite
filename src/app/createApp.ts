@@ -17,7 +17,7 @@ import { RoundRunner } from '@/systems/RoundRunner';
 import { SlowMotionNearMissEffect } from '@/systems/SlowMotionNearMissEffect';
 import { WebAudioSystem, frequencyForMergeTier } from '@/systems/WebAudioSystem';
 import { BasicMergeCardProvider } from '@/systems/cards/BasicMergeCardProvider';
-import { createRoundClearRewardCard } from '@/systems/cards/RoundClearRewardCard';
+import { createRoundClearChoice } from '@/systems/cards/RoundClearRewardCard';
 import type { RoundDefinition } from '@/core/interfaces/IRoundSystem';
 import type { MergeCard } from '@/core/interfaces/IMergeCard';
 
@@ -81,8 +81,8 @@ export function createApp(root: HTMLElement): App {
   // Roguelite rounds (Task 2.2): score targets, drop budget, clear-reward card.
   // The round HUD (Task 2.12) reads through the same system every frame.
   const roundSystem = new BasicRoundSystem();
-  const roundRunner = new RoundRunner(game, roundSystem, (round: RoundDefinition): MergeCard =>
-    createRoundClearRewardCard(round.index),
+  const roundRunner = new RoundRunner(game, roundSystem, (round: RoundDefinition): MergeCard[] =>
+    createRoundClearChoice(round.index),
   );
   // Juice: merge particle bursts (Task 2.5).
   const particles = new BasicParticleSystem();

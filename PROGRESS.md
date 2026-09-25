@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.13
+Active Next Action: Task 2.14
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.12 완료 — 라운드 HUD 표시
+- 마지막 갱신: Task 2.13 완료 — 라운드 클리어 보상 카드 선택지
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## Task Backlog
@@ -114,7 +114,12 @@ Active Next Action: Task 2.13
   - `createApp.ts` 의 공통 `choosePendingCard` 가 마우스/터치와 키보드 선택을 모두 `game.chooseCard` 로 연결하고, 성공 시 카드 선택 효과음을 낸다.
   - 테스트 추가: `tests/pointerInput.test.ts` 3건 — 숫자열/숫자패드 인덱스 매핑, 선택 실패 시 기본 동작 유지, 수정키 단축키 비간섭.
 - [ ] Task 2.12: 라운드 HUD 표시(라운드 번호 · 목표 진행도 · 남은 드롭) — 지금은 라운드 진행이 테스트로만 관찰되고 화면에 나오지 않는다(Task 2.2 에서 발견). `GameSnapshot` 확장 여부와 함께 착수 시 세부 스펙을 먼저 쪼갠다.
-- [ ] Task 2.13: 라운드 클리어 보상을 자동 지급 대신 카드 선택지로 — 지금은 `RoundRunner` 가 `createRoundClearRewardCard` 를 즉시 apply 해 버려 플레이어의 선택이 없다(Task 2.2 에서 발견). 슬로우모션 카드 선택 플로우 재활용을 검토한다.
+- [x] **Task 2.13: 라운드 클리어 보상을 자동 지급 대신 카드 선택지로**
+  - `Game.openRewardChoice(cards)` 추가 — 머지 선택과 같은 `slowmo_select`·오버레이·포인터/1-2-3 입력·400ms(`SLOW_MOTION`) 타임아웃을 재사용하는 합성 머지 기반 선택창. 바쁘거나(`mergeMoment` 불가) 빈 패면 `false`.
+  - `ISlowMotionSelector` 에 선택 필드 `offerCards?(merge, cards)` 추가, `CardSlowMotionSelector` 가 제시 패를 기억해 타임아웃이 화면에 보인 비-리스크 카드를 고르게 했다(라운드 패는 전부 reward라 선두 `+N점` 확정).
+  - `createRoundClearChoice(round)` 신설 — `+N점` + `SCORE ×2` 2회 + `SCORE ×3` 1회(기존 팩토리 재사용). `RoundRunner` 생성자가 `rewardFor` 단일 카드에서 `choiceFor` 패로 바뀌고, 클리어 시 선택 오픈+즉시 어드밴스(고른 보상은 새 라운드 소득), 선택 중 추가 지급은 `choosing` 가드로 대기 후 `time:slowMotionEnd` 재확인, 보드 busy 시 선두 카드 즉시 지급 폴백, 빈 패면 무보상 어드밴스.
+  - `docs/GDD.md` 4절(선택 규칙·새 라운드 합산·폴백)과 `docs/ARCHITECTURE.md` 슬로우모션/라운드 행 갱신.
+  - 테스트: `tests/roundRunner.test.ts` 전면 개편(선택 오픈·busy 폴백·예산 스킵·선택 중 대기 후 지급·빈 패·리셋·dispose·실Game 전체 루프) + `createRoundClearChoice` 1건, `tests/roundClearChoice.test.ts` 6건(Game 오픈/재개/거부 3건, 셀렉터 offerCards 3건). `roundHud.test.ts` fake Game 도 새 인터페이스에 맞춤.
 - [ ] Task 2.14: 폭탄 폭발 득점 보상 설계 — 지금은 제거만 하고 점수가 없어, 큰 공을 지울수록 손해로 느껴질 수 있다(Task 2.3 에서 발견). 제거된 공 값의 일정 비율 지급 등을 GDD 와 함께 결정한다.
 
 ### Infra

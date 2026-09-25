@@ -2,6 +2,7 @@ import {
   BOARD,
   DROP_COOLDOWN_MS,
   RESTING_SPEED_THRESHOLD,
+  SLOW_MOTION,
   SPAWN_Y,
   SPAWNABLE_TIER_COUNT,
   SPECIAL_BALLS,
@@ -235,9 +236,34 @@ export class Game {
   }
 
   /**
-   * Applies a standalone reward card (round-clear bonus and friends) outside
-   * the slow-motion choice, through the same context a chosen card gets.
-   * Returns false when no run is active.
+   * Opens the slow-motion card choice for a reward that is not tied to a
+   * merge (round-clear bonus, Task 2.13), reusing the merge-moment flow:
+   * same `slowmo_select` state, overlay, pointer/keyboard input and timeout.
+   * Returns false when the board is busy or the hand is empty.
+   */
+  openRewardChoice(cards: readonly MergeCard[]): boolean {
+    if (cards.length === 0 || !this.fsm.can('mergeMoment')) {
+      return false;
+    }
+    const merge = rewardMergeEvent();
+    this.time.startSlowMotion(SLOW_MOTION.durationMs, SLOW_MOTION.timeScale);
+    this.events.emit('time:slowMotionStart', {
+      durationMs: SLOW_MOTION.durationMs,
+      timeScale: SLOW_MOTION.timeScale,
+    });
+    this.pendingCards = [...cards];
+    this.pendingMerge = merge;
+    this.slowMoTimerMs = SLOW_MOTION.durationMs;
+    this.resumeEvent = this.fsm.is('dropping') ? 'resumeDropping' : 'resumeAiming';
+    this.slowMo.offerCards?.(merge, this.pendingCards);
+    this.fsm.send('mergeMoment');
+    return true;
+  }
+
+  /**
+   * Applies a standalone reward card (round-clear fallback and friends)
+   * outside the slow-motion choice, through the same context a chosen card
+   * gets. Returns false when no run is active.
    */
   applyRewardCard(card: MergeCard): boolean {
     if (this.fsm.is('idle') || this.fsm.is('game_over')) {

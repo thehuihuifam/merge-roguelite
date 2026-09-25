@@ -5,7 +5,7 @@ import { EventBus } from '@/core/events/EventBus';
 import { drawHud } from '@/render/HudRenderer';
 import { BasicRoundSystem } from '@/systems/BasicRoundSystem';
 import { RoundRunner } from '@/systems/RoundRunner';
-import { createRoundClearRewardCard } from '@/systems/cards/RoundClearRewardCard';
+import { createRoundClearChoice } from '@/systems/cards/RoundClearRewardCard';
 import type { GameSnapshot } from '@/core/Game';
 import type { GameEventMap } from '@/core/events/GameEvents';
 import type { MergeCard } from '@/core/interfaces/IMergeCard';
@@ -34,6 +34,7 @@ function createHudlessRounds(): IRoundSystem {
 function createFakeGame(): Game {
   const game = {
     events: new EventBus<GameEventMap>(),
+    openRewardChoice: (_cards: readonly MergeCard[]): boolean => true,
     applyRewardCard: (_card: MergeCard): boolean => true,
   } as unknown as Game;
   return game;
@@ -140,8 +141,8 @@ describe('RoundRunner.getHudState', () => {
   it('exposes the live round state while the run progresses', () => {
     const game = createFakeGame();
     const rounds = new BasicRoundSystem();
-    const runner = new RoundRunner(game, rounds, (round): MergeCard =>
-      createRoundClearRewardCard(round.index),
+    const runner = new RoundRunner(game, rounds, (round): MergeCard[] =>
+      createRoundClearChoice(round.index),
     );
 
     game.events.emit('score:changed', { score: 120, best: 120, delta: 120 });
@@ -164,8 +165,8 @@ describe('RoundRunner.getHudState', () => {
 
   it('returns null when the round system predates the HUD field', () => {
     const game = createFakeGame();
-    const runner = new RoundRunner(game, createHudlessRounds(), (round): MergeCard =>
-      createRoundClearRewardCard(round.index),
+    const runner = new RoundRunner(game, createHudlessRounds(), (round): MergeCard[] =>
+      createRoundClearChoice(round.index),
     );
     expect(runner.getHudState()).toBeNull();
     runner.dispose();
