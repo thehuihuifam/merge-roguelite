@@ -2,11 +2,20 @@
 
 ## Current Status
 
-Active Next Action: 없음 — 백로그 소진, 다음 세션은 AGENTS.md 4.11 백로그 제안 모드
+Active Next Action: Task 2.15 — 앱 렌더 단계의 라운드 HUD 연결 복구
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.14 완료 — 폭탄 폭발 득점 보상
+- 마지막 갱신: 2026-09-25 — 백로그 보충 전용 루프, Task 2.15~2.34 제안 (기능 구현 없음)
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
+
+## 이번 루프 기록 (2026-09-25)
+
+- 진입 시 미완료 0개 → AGENTS.md 4.11.2에 따라 구현 없이 백로그 보충만 수행.
+- 이번 세션 완료 태스크 0개, 보충 전 미완료 0개, 보충 수 `20 - 0 = 20`개, 보충 후 미완료 20개.
+- CONTEXT.md, docs/GDD.md, docs/ROADMAP.md 재확인: 물리적 가변 보상·에스컬레이션·근접 실패·juice를 유지하며, 슬로우모션 선택·리스크 카드·근접 실패 연출과 런 구조에 한정해 제안했다.
+- 중복 점검: 세이브·사운드·파티클·ModifierStack·위험선 페널티는 이미 구현됨. CONTEXT.md의 오래된 미구현 목록보다 실제 코드와 완료 기록을 우선해 재구현 태스크를 만들지 않았다. 라운드 HUD는 구현체가 있지만 `createApp.ts`의 렌더 호출에서 `round` 합성이 빠져 있으므로 연결 회귀만 별도 등록했다.
+- 검증: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test` 통과 (27개 파일, 207개 테스트). 코드 변경 및 브라우저 수동 QA는 수행하지 않음.
+- 아래 신규 태스크는 각각 10분 이내의 작업 단위이며, 선행 태스크를 명시했다. 이번 PR 머지 시 제안 승인으로 간주하고 다음 세션부터 순서대로 수행한다.
 
 ## Task Backlog
 
@@ -137,3 +146,107 @@ Active Next Action: 없음 — 백로그 소진, 다음 세션은 AGENTS.md 4.11
   - 단계: checkout → setup-node(Node 20, npm cache) → npm ci (실패 시 --legacy-peer-deps 우회) → npm run build → configure-pages → upload-pages-artifact(dist/) → deploy-pages(github-pages environment)
   - ci.yml 과 역할 분리: ci.yml 은 PR 검증(Lint/Typecheck/Test), pages.yml 은 빌드+배포 전용
   - vite.config.ts base: './' 설정으로 /merge-roguelite/ 하위 경로 배포 호환 확인
+
+### 신규 보충 — v0.3.0 마무리 및 런 피드백 (Task 2.15~2.34)
+
+공통: 아래 수치와 UI 문구는 제안이다. 구현 시 수치는 `src/config/gameConfig.ts`에 모으고, 인터페이스 확장은 `docs/ARCHITECTURE.md`, 규칙 변경은 `docs/GDD.md`, 미구현 항목 완료는 `CONTEXT.md`에 함께 반영한다. 기존 메서드 시그니처는 유지하고 선택 필드·새 구현·얇은 조립 연결만 추가한다. 각 태스크의 완료 기준에 더해 lint/typecheck/전체 테스트 통과가 필수다.
+
+- [ ] **Task 2.15: 앱 렌더 단계의 라운드 HUD 연결 복구**
+  - 기존 수정: `src/app/createApp.ts`. 신규: `src/app/composeRoundSnapshot.ts`, `tests/composeRoundSnapshot.test.ts`.
+  - 확장 방식: 기존 `IRoundSystem.getHudState` → `RoundRunner.getHudState()` 결과를 `GameSnapshot.round`에 합성하는 작은 순수 헬퍼를 추가하고 실제 렌더 콜백에서 사용한다. Task 2.12의 HUD/라운드 구현을 다시 만들지 않는다.
+  - 완료 기준: 라운드 상태가 있으면 스냅샷에 포함되고 null이면 필드가 생략되며 원본은 불변인 테스트 통과. 화면에서 ROUND/목표/남은 드롭이 표시된다. 범위는 누락된 연결만, 10분.
+
+- [ ] **Task 2.16: 큰 공 스폰 페널티 상태와 카드 컨텍스트 계약 추가**
+  - 신규: `src/core/ball/SpawnTierPenalty.ts`, `tests/spawnTierPenalty.test.ts`. 기존 수정: `src/core/interfaces/IMergeCard.ts`.
+  - 확장 방식: `MergeCardContext`에 선택 콜백 `raiseSpawnTierFloor?(minTier, count)` 추가. 순수 상태 객체는 하한/남은 발급 수를 보관하고 `apply(tier)`마다 1회 소비한다. 중첩은 하한과 잔여 횟수 각각의 최댓값, reset은 전부 해제. Game 연결은 다음 태스크.
+  - 완료 기준: 하한 적용·정확히 N회 뒤 만료·중첩·reset·유효하지 않은 티어/횟수 거부 테스트 통과. 스폰 가능한 티어 범위만 허용한다. 10분.
+
+- [ ] **Task 2.17: 스폰 페널티를 Game의 신규 공 발급에 연결**
+  - 선행: Task 2.16. 기존 수정: `src/core/Game.ts`. 신규: `tests/gameSpawnPenalty.test.ts`.
+  - 확장 방식: Game이 상태 객체를 소유하고 카드 컨텍스트 콜백을 구현한다. 선택 당시 이미 보이는 held/NEXT는 변경하지 않고 이후 신규 발급 때만 하한을 적용한다. 폭탄 여부 난수와 발급 순서는 유지하고 재시작 시 reset한다.
+  - 완료 기준: 테스트 카드 적용 후 기존 NEXT 유지, 다음 N회 신규 발급 하한 보장, 이후 정상 복귀, 재시작 해제 통합 테스트 통과. UI/덱 변경은 제외, 10분.
+
+- [ ] **Task 2.18: 큰 공 스폰 리스크 카드 추가**
+  - 선행: Task 2.17. 신규: `src/systems/cards/SpawnLargerBallsCard.ts`, `tests/spawnLargerBallsCard.test.ts`. 기존 수정: `src/systems/cards/BasicMergeCardProvider.ts`, `src/config/gameConfig.ts`, `tests/basicMergeCardProvider.test.ts`.
+  - 확장 방식: `RiskCard` 구현으로 다음 신규 발급 3회 티어 하한 3의 대가와 다음 머지 ×4 1회 보상을 제안한다. 컨텍스트 기능이 없으면 페널티 없는 보상을 주지 않고 적용을 거부한다. 기존 provider의 리스크 풀에 1장만 추가한다.
+  - 완료 기준: 페널티/보상 콜백 인자, 미지원 컨텍스트 거부, 시드 결정성, 3장 중 리스크 정확히 1장 계약 테스트 통과. 설명에 하한/횟수/보상을 명시한다. 10분.
+
+- [ ] **Task 2.19: 스폰 압박의 남은 발급 수 HUD 표시**
+  - 선행: Task 2.18. 신규: `src/render/SpawnPenaltyHudRenderer.ts`, `tests/spawnPenaltyHud.test.ts`. 기존 수정: `src/core/Game.ts`, `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`.
+  - 확장 방식: 카드 컨텍스트로 생성한 페널티를 읽기 전용 `GameSnapshot.spawnPenalty?`로 노출하고 작은 렌더러가 하한 값과 남은 신규 발급 수를 표시한다. 게임 상태를 렌더러에서 수정하지 않는다.
+  - 완료 기준: 활성 시 숫자/횟수 표시, 만료·재시작 시 숨김을 스냅샷/Canvas 스텁 테스트로 확인. 기존 ROUND/NEXT와 겹치지 않는 배치. 10분.
+
+- [ ] **Task 2.20: 활성 점수 수정자의 읽기 전용 스냅샷 추가**
+  - 기존 수정: `src/core/interfaces/IScoreModifier.ts`, `src/core/score/ModifierStack.ts`, `src/core/Game.ts`, `tests/modifierStack.test.ts`. 신규: `tests/modifierSnapshot.test.ts`.
+  - 확장 방식: `IScoreModifier` 지원 HUD 데이터 타입을 추가하고 스택 항목을 복사한 `GameSnapshot.activeModifiers?`를 노출한다. 범용 수정자의 NaN 배율/무제한 횟수는 표시용 null로 정규화한다. 기존 점수 계산은 그대로 유지한다.
+  - 완료 기준: ID·배율·남은 머지/시간 조회, 만료 제거, reset, 스냅샷 수정이 내부 상태에 영향 없는 테스트 통과. 표시 구현은 제외, 10분.
+
+- [ ] **Task 2.21: 누적 카드 배율과 남은 효과 HUD 표시**
+  - 선행: Task 2.20. 신규: `src/render/ModifierHudRenderer.ts`, `tests/modifierHud.test.ts`. 기존 수정: `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`.
+  - 확장 방식: `IScoreModifier`의 읽기 전용 표시 데이터를 소비해 최대 2개 효과와 초과 개수를 표시한다. 횟수형은 남은 머지, 시간형은 남은 초를 구분하고 범용 수정자는 배율 대신 ID를 쓴다.
+  - 완료 기준: 빈 상태 무표시, 배율/횟수/초 표시, 3개 이상 요약, NaN/무한값 미노출 Canvas 스텁 테스트 통과. 스폰 압박 HUD와 다른 영역 사용. 10분.
+
+- [ ] **Task 2.22: 시간 제한 배율의 카드 컨텍스트 연결**
+  - 기존 수정: `src/core/interfaces/IMergeCard.ts`, `src/core/Game.ts`. 신규: `tests/timedMultiplierContext.test.ts`.
+  - 확장 방식: 기존 `pushScoreMultiplier`를 변경하지 않고 선택 콜백 `pushTimedScoreMultiplier?(multiplier, durationMs)` 추가. 기존 `ModifierStack.pushModifier`와 `IScoreModifier` 구현을 사용해 머지 횟수 제한 없이 게임시간으로 만료시킨다.
+  - 완료 기준: 지정 시간 이내 여러 머지에 적용, 게임시간 만료 후 해제, 슬로우모션 중 실시간보다 느린 감소, 재시작 해제 테스트 통과. 스택 재구현 없이 연결만, 10분.
+
+- [ ] **Task 2.23: 시간 제한 배율 보상 카드 1종 추가**
+  - 선행: Task 2.22. 신규: `src/systems/cards/TimedMultiplierCard.ts`, `tests/timedMultiplierCard.test.ts`. 기존 수정: `src/systems/cards/BasicMergeCardProvider.ts`, `src/config/gameConfig.ts`, `tests/basicMergeCardProvider.test.ts`.
+  - 확장 방식: `MergeCard` 구현으로 게임시간 5초간 ×2 카드를 보상 풀에 추가한다. 콜백 미지원이면 적용을 거부하고, 카드 설명에 게임시간 기준임을 명시한다.
+  - 완료 기준: 컨텍스트 호출 인자·미지원 거부·고유 ID·확장된 덱의 리스크 수/중복 없음 테스트 통과. 라운드 보상 풀은 변경하지 않는다. 10분.
+
+- [ ] **Task 2.24: 카드 선택 결과 이벤트 추가**
+  - 기존 수정: `src/core/events/GameEvents.ts`, `src/core/Game.ts`. 신규: `tests/cardChosenEvent.test.ts`.
+  - 확장 방식: 이벤트 계약에 `card:chosen`(cardId, kind, source: manual/timeout)을 추가한다. `ISlowMotionSelector`의 기존 선택 흐름에서 실제 적용 성공당 한 번 발화하고 공개 `chooseCard` 시그니처는 유지한다. 즉시 보상 폴백은 선택으로 세지 않는다.
+  - 완료 기준: 수동/타임아웃 각각 1회, 거부/중복 클릭/타임아웃 null/직접 보상 적용 시 0회 테스트 통과. 통계 및 연출은 구독자에서 구현한다. 10분.
+
+- [ ] **Task 2.25: 런별 리스크 선택과 최대 연쇄 통계 수집**
+  - 선행: Task 2.24. 신규: `src/systems/RunStatsTracker.ts`, `tests/runStatsTracker.test.ts`.
+  - 확장 방식: 기존 `GameEventMap`/`EventBus` 계약의 구독자로 리스크 선택 수·전체 선택 수·최대 chainIndex·폭탄 폭발 수를 모은다. 읽기 전용 복사본 조회, `run:started` 초기화, `run:over` 집계 동결, dispose 구독 해제를 제공한다.
+  - 완료 기준: 이벤트별 카운트, 타임아웃 선택 포함, 런 종료 후 불변, 다음 런 초기화, dispose 후 무반응 테스트 통과. UI/저장은 제외, 10분.
+
+- [ ] **Task 2.26: 런 종료 화면에 선택 통계 표시**
+  - 선행: Task 2.25. 신규: `src/render/RunStatsRenderer.ts`, `tests/runStatsRenderer.test.ts`. 기존 수정: `src/core/Game.ts`(스냅샷 타입만), `src/app/createApp.ts`, `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`.
+  - 확장 방식: 이벤트 구독 통계를 app에서 `GameSnapshot.runStats?`로 합성하고 종료 화면에 리스크 선택 수·최대 연쇄·폭발 수를 표시한다. tracker의 생성/해제만 app에 추가한다.
+  - 완료 기준: game_over에만 통계 표시, 필드 없는 스냅샷은 기존 화면 유지, 재시작 안내와 겹치지 않는 Canvas 스텁 테스트 통과. 10분.
+
+- [ ] **Task 2.27: 세이브에 최고 도달 라운드 필드 추가**
+  - 기존 수정: `src/core/interfaces/ISaveSystem.ts`, `src/systems/LocalStorageSaveSystem.ts`, `src/config/gameConfig.ts`, `tests/saveSystem.test.ts`.
+  - 확장 방식: `SaveData`에 선택 필드 `highestRound?` 추가. 기존 메서드 계약 유지, 저장 버전 승격과 구버전 기본값 0 마이그레이션으로 런 성장 기록을 준비한다.
+  - 완료 기준: 구버전의 점수/런 수/시드 보존, 새 필드 round-trip, 음수·소수·비유한 값 정규화, clear/메모리 폴백 테스트 통과. 앱 연결 제외, 10분.
+
+- [ ] **Task 2.28: 런 종료 시 최고 도달 라운드 저장 연결**
+  - 선행: Task 2.27. 신규: `src/systems/save/withHighestRound.ts`, `tests/highestRoundSave.test.ts`. 기존 수정: `src/app/createApp.ts`.
+  - 확장 방식: `ISaveSystem` 데이터와 `IRoundSystem.currentRound()`를 받아 최고 라운드를 갱신하는 순수 헬퍼를 만들고 기존 `run:over` 저장에 연결한다. 도달 기준이므로 클리어/예산 소진 여부와 무관하게 현재 라운드를 기록한다.
+  - 완료 기준: 낮은 런으로 기존 기록이 줄지 않음, 높은 런 갱신, bestScore/totalRuns/lastSeed 보존 테스트 통과. 중복 저장 구독자를 만들지 않는다. 10분.
+
+- [ ] **Task 2.29: severity 기반 근접 실패 심박 스케줄러 추가**
+  - 신규: `src/systems/NearMissHeartbeat.ts`, `tests/nearMissHeartbeat.test.ts`. 기존 수정: `src/core/interfaces/IAudioSystem.ts`, `src/systems/WebAudioSystem.ts`, `src/config/gameConfig.ts`.
+  - 확장 방식: `IAudioSystem`의 SoundCue에 단발 `near_miss_beat`를 추가하고 별도 스케줄러가 실시간 update와 severity로 박동 간격을 조절한다. 기존 시각 심박 상수를 재사용하며 정지/리셋을 제공한다. 기존 근접 실패의 지속음은 다음 태스크에서만 교체한다.
+  - 완료 기준: severity가 높을수록 박동 간격 감소, 큰 delta에도 한 프레임 폭주 없음, stop 이후 무음, Node 오디오 no-op 테스트 통과. 10분.
+
+- [ ] **Task 2.30: 근접 실패 이벤트를 심박 스케줄러에 연결**
+  - 선행: Task 2.29. 신규: `src/systems/bindNearMissHeartbeat.ts`, `tests/nearMissHeartbeatBinding.test.ts`. 기존 수정: `src/app/createApp.ts`.
+  - 확장 방식: `GameEventMap` enter/update/exit 구독으로 Task 2.29 스케줄러를 갱신하고 app 프레임에서 실시간 update를 호출한다. 기존 `near_miss_loop`의 app 재생/정지 연결만 대체하며 다른 효과음은 유지한다.
+  - 완료 기준: enter 시작·update 강도 반영·exit/run:over/run:started 정지, dispose 해제 테스트 통과. 비네트와 함께 위험도에 따른 빠른 심박을 청각적으로 확인 가능. 10분.
+
+- [ ] **Task 2.31: 카드 선택 잔여 시간을 스냅샷으로 노출**
+  - 기존 수정: `src/core/Game.ts`. 신규: `tests/cardChoiceTimer.test.ts`.
+  - 확장 방식: `ISlowMotionSelector`의 요청 durationMs와 실제 선택 타이머를 읽는 `GameSnapshot.cardChoiceTimer?`(durationMs, remainingMs)를 추가한다. 근접 실패용 TimeController 잔여 시간과 혼동하지 않는다.
+  - 완료 기준: 머지/라운드 보상 양쪽에서 실시간 감소, 선택·타임아웃·게임오버·재시작 시 필드 해제, 근접 실패만 발생하면 미노출 테스트 통과. 400ms 규칙 자체는 변경하지 않는다. 10분.
+
+- [ ] **Task 2.32: 카드 오버레이에 선택 카운트다운 바 표시**
+  - 선행: Task 2.31. 신규: `src/render/CardChoiceTimerRenderer.ts`, `tests/cardChoiceTimerRenderer.test.ts`. 기존 수정: `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`.
+  - 확장 방식: 선택 타이머 스냅샷만 읽어 CHOOSE 헤더 아래에 남은 시간 비율 바를 그린다. 카드 히트 영역은 유지하고 타이머 필드가 없으면 그리지 않는다.
+  - 완료 기준: 잔여 시간 100%/50%/0%의 바 길이, 0~1 클램프, slowmo_select 외 무표시 Canvas 스텁 테스트 통과. 10분.
+
+- [ ] **Task 2.33: 카드 선택지에 키보드 번호 안내 표시**
+  - 기존 수정: `src/render/CardOverlayRenderer.ts`, `src/config/gameConfig.ts`, `tests/cardOverlayLayout.test.ts`.
+  - 확장 방식: 기존 `MergeCard` 선택 패의 인덱스를 읽어 첫 3장에 1/2/3 키 배지를 추가한다. Task 2.11의 입력 구현은 변경하지 않고 리스크 배지/설명과 다른 영역을 쓴다.
+  - 완료 기준: 실제 표시 순서에 맞는 숫자, 2장/빈 패 처리, RISK 배지 유지, 히트 영역 불변 Canvas 스텁 테스트 통과. 색에만 의존하지 않는 선택 안내, 10분.
+
+- [ ] **Task 2.34: 리스크 선택과 자동 선택의 효과음 피드백 구분**
+  - 선행: Task 2.24. 신규: `src/systems/bindCardChoiceAudio.ts`, `tests/cardChoiceAudio.test.ts`. 기존 수정: `src/app/createApp.ts`, `src/config/gameConfig.ts`.
+  - 확장 방식: `IAudioSystem`의 기존 card_pick cue를 `card:chosen` 구독자로 재생한다. 리스크는 낮은 pitch, 자동 선택은 낮은 volume으로 구분하고 app의 수동 입력 경로 직접 재생은 제거해 중복을 막는다.
+  - 완료 기준: 수동 보상/리스크/타임아웃별 설정값과 성공당 정확히 1회 재생, dispose 후 무반응 테스트 통과. 새 오디오 엔진/의존성 없이 선택 결과 인지를 강화한다. 10분.
