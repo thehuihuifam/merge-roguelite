@@ -73,6 +73,30 @@ export const MERGE_CARDS = {
   dangerLineSeverity: 0.5,
 } as const;
 
+/**
+ * Layout of the card choice overlay drawn during `slowmo_select`, in board
+ * units. The rectangle helper is exported by `src/render/CardOverlayRenderer`
+ * so pointer input can hit-test the very shapes that were drawn.
+ */
+export const CARD_OVERLAY = {
+  cardWidth: 132,
+  cardHeight: 180,
+  gap: 14,
+  /** Distance from the bottom of the board to the bottom of a card. */
+  bottomMargin: 56,
+  /** Distance from the top of the board to the "CHOOSE" header. */
+  headerY: 148,
+  cornerRadius: 12,
+  padding: 12,
+  borderWidth: 2,
+  riskBorderWidth: 3,
+  titleFontSize: 16,
+  bodyFontSize: 12,
+  bodyLineHeight: 15,
+  badgeHeight: 18,
+  badgeWidth: 46,
+} as const;
+
 /** Score awarded when two max-tier balls merge and vanish. */
 export const MAX_TIER_MERGE_BONUS = 10000;
 

@@ -4,6 +4,7 @@ import { SeededRandom, createSeed } from '@/core/rng/SeededRandom';
 import { TimeController } from '@/core/time/TimeController';
 import { PointerInput } from '@/input/PointerInput';
 import { CanvasRenderer } from '@/render/CanvasRenderer';
+import { cardIndexAt } from '@/render/CardOverlayRenderer';
 import { CardSlowMotionSelector } from '@/systems/CardSlowMotionSelector';
 import { SlowMotionNearMissEffect } from '@/systems/SlowMotionNearMissEffect';
 import { BasicMergeCardProvider } from '@/systems/cards/BasicMergeCardProvider';
@@ -52,10 +53,29 @@ export function createApp(root: HTMLElement): App {
         beginRun();
         return;
       }
+      // While the card overlay is up, a release belongs to the cards, not the board.
+      if (game.state === 'slowmo_select') {
+        return;
+      }
       if (Number.isFinite(clientX)) {
         game.setAimX(renderer.toBoardX(clientX));
       }
       game.drop();
+    },
+    onSelect: (clientX: number, clientY: number): void => {
+      if (game.state !== 'slowmo_select') {
+        return;
+      }
+      const cards = game.getSnapshot().pendingCards;
+      const index = cardIndexAt(cards, renderer.toBoardX(clientX), renderer.toBoardY(clientY));
+      if (index === null) {
+        return;
+      }
+      const card = cards[index];
+      if (card === undefined) {
+        return;
+      }
+      game.chooseCard(card);
     },
     onRestart: (): void => {
       if (game.state === 'game_over' || game.state === 'idle') {

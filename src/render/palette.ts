@@ -9,4 +9,9 @@ export const PALETTE = {
   overlay: 'rgba(8, 8, 20, 0.78)',
   ballStroke: 'rgba(0, 0, 0, 0.35)',
   ballText: '#141414',
+  cardBackground: '#20233d',
+  cardBorder: '#3a3f66',
+  cardRiskBorder: '#ff4d6d',
+  cardRiskText: '#ff8fa3',
+  cardBadgeText: '#14141f',
 } as const;
