@@ -37,6 +37,17 @@ describe('SeededRandom', () => {
     expect(seen).toEqual(new Set([3, 4, 5]));
   });
 
+  it('reseed restarts the stream so a run can be replayed', () => {
+    const rng = new SeededRandom(12345);
+    const first = Array.from({ length: 5 }, () => rng.next());
+    rng.reseed(12345);
+    const replay = Array.from({ length: 5 }, () => rng.next());
+    rng.reseed(777);
+    const other = Array.from({ length: 5 }, () => rng.next());
+    expect(replay).toEqual(first);
+    expect(other).not.toEqual(first);
+  });
+
   it('pick throws on empty arrays and nextInt validates bounds', () => {
     const rng = new SeededRandom(1);
     expect(() => rng.pick([])).toThrow(RangeError);

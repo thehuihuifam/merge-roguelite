@@ -9,6 +9,11 @@ export class SeededRandom {
     this.state = seed >>> 0;
   }
 
+  /** Restarts the stream from a new seed (e.g. when a new run begins). */
+  reseed(seed: number): void {
+    this.state = seed >>> 0;
+  }
+
   /** Returns a float in [0, 1). */
   next(): number {
     this.state = (this.state + 0x6d2b79f5) >>> 0;

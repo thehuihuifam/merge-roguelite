@@ -40,6 +40,11 @@ export const SLOW_MOTION = {
   timeScale: 0.25,
   cardCount: 3,
   riskCardCount: 1,
+  /**
+   * Minimum tier of the merged ball that opens the card choice (tier 2 = value
+   * 8). Keeps the choice rare enough to stay exciting: roughly 2–4 per minute.
+   */
+  minResultTier: 2,
 } as const;
 
 /**
