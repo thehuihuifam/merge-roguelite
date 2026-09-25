@@ -1,4 +1,5 @@
 import { MERGE_CARDS } from '@/config/gameConfig';
+import { createSpawnLargerBallsCard } from '@/systems/cards/SpawnLargerBallsCard';
 import type {
   IMergeCardProvider,
   MergeCard,
@@ -97,7 +98,7 @@ export function createRaiseDangerLineCard(): RiskCard {
 }
 
 /**
- * The default deck: three reward cards and two risk cards. Draws are sampled
+ * The default deck: three reward cards and three risk cards (Task 2.18 added HEAVY LOAD). Draws are sampled
  * from an injected `SeededRandom`, so the same seed always offers the same
  * hand, and exactly `riskCount` of the returned cards are risk cards.
  */
@@ -147,7 +148,7 @@ export class BasicMergeCardProvider implements IMergeCardProvider {
   }
 
   private riskPool(): RiskCard[] {
-    return [createScoreLossCard(), createRaiseDangerLineCard()];
+    return [createScoreLossCard(), createRaiseDangerLineCard(), createSpawnLargerBallsCard()];
   }
 
   /** Takes `take` distinct cards; the pool must hold at least that many. */

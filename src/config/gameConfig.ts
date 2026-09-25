@@ -99,6 +99,16 @@ export const MERGE_CARDS = {
   dangerLineMultiplier: 4,
   dangerLineMultiplierUses: 1,
   dangerLineSeverity: 0.5,
+  /**
+   * Risk: force the next dispenser issuances up to at least this tier
+   * (`spawn_larger_balls`, Task 2.18) — board pressure in exchange for a
+   * one-shot merge multiplier.
+   */
+  spawnLargerFloorTier: 3,
+  spawnLargerSpawns: 3,
+  spawnLargerMultiplier: 4,
+  spawnLargerMultiplierUses: 1,
+  spawnLargerSeverity: 0.6,
 } as const;
 
 /**
@@ -168,6 +178,18 @@ export const SPECIAL_BALLS = {
 export const SAVE = {
   storageKey: 'merge-roguelite:save',
   version: 1,
+} as const;
+
+/**
+ * Spawn-penalty HUD placement (Task 2.19). Right-aligned under the NEXT
+ * preview and above the danger line, clear of the ROUND column and NEXT.
+ */
+export const SPAWN_PENALTY_HUD = {
+  /** Right text edge, board units. */
+  x: BOARD.width - 14,
+  /** Top of the label line, board units. */
+  y: 92,
+  labelFontSize: 12,
 } as const;
 
 /** Audio tuning (Task 2.6). Consumed by WebAudioSystem. */
