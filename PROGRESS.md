@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.16 — 큰 공 스폰 페널티 상태와 카드 컨텍스트 계약 추가
+Active Next Action: Task 2.17 — 스폰 페널티를 Game의 신규 공 발급에 연결
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: Task 2.15 완료 — 앱 렌더 단계의 라운드 HUD 연결 복구
+- 마지막 갱신: Task 2.16 완료 — 큰 공 스폰 페널티 상태와 카드 컨텍스트 계약 추가
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## 이번 루프 기록 (2026-09-25)
@@ -160,10 +160,14 @@ Active Next Action: Task 2.16 — 큰 공 스폰 페널티 상태와 카드 컨�
   - 테스트 추가: `tests/composeRoundSnapshot.test.ts` 5건 — 라운드 포함, 원본 불변·새 객체, null 시 필드 생략(참조 동일), 실제 `RoundRunner` + `BasicRoundSystem` 위임값, HUD 미지원 라운드 시스템의 null 폴백.
   - 문서: `docs/ARCHITECTURE.md` 라운드 확장 포인트 행에 `composeRoundSnapshot` 합성 경로 명시.
 
-- [ ] **Task 2.16: 큰 공 스폰 페널티 상태와 카드 컨텍스트 계약 추가**
+- [x] **Task 2.16: 큰 공 스폰 페널티 상태와 카드 컨텍스트 계약 추가**
   - 신규: `src/core/ball/SpawnTierPenalty.ts`, `tests/spawnTierPenalty.test.ts`. 기존 수정: `src/core/interfaces/IMergeCard.ts`.
   - 확장 방식: `MergeCardContext`에 선택 콜백 `raiseSpawnTierFloor?(minTier, count)` 추가. 순수 상태 객체는 하한/남은 발급 수를 보관하고 `apply(tier)`마다 1회 소비한다. 중첩은 하한과 잔여 횟수 각각의 최댓값, reset은 전부 해제. Game 연결은 다음 태스크.
   - 완료 기준: 하한 적용·정확히 N회 뒤 만료·중첩·reset·유효하지 않은 티어/횟수 거부 테스트 통과. 스폰 가능한 티어 범위만 허용한다. 10분.
+  - 실제 구현: `src/core/ball/SpawnTierPenalty.ts` 추가 — `raise(minTier, count)` 로 하한과 잔여 횟수를 설정하고(중첩 시 하한·횟수 각각 최댓값, 약한 하한이 기존 페널티를 단축하지 못함), `apply(tier)` 가 신규 발급 티어에 하한을 적용하며 1회 소비 후 0이 되면 하한을 해제한다, `reset()` 은 전부 해제. `floor`/`remainingCount`/`isActive` 읽기 전용 조회와 `SpawnPenaltyHudState` 타입을 함께 export 해 Task 2.19 HUD 가 재사용한다.
+  - 계약: `MergeCardContext.raiseSpawnTierFloor?(minTier, count)` 선택 필드 추가(기존 메서드 시그니처 무변경). 티어는 스폰 가능 범위(0 .. `SPAWNABLE_TIER_COUNT`−1)만, 횟수는 1 이상 정수만 허용하고 위반 시 `RangeError`.
+  - 테스트 추가: `tests/spawnTierPenalty.test.ts` 9건 — 비활성 통과, 정확히 N회 보장, 자연 roll 이 더 크면 유지, 중첩 최댓값(양방향), reset, 스폰 범위 밖/소수/NaN 티어 거부, 잘못된 횟수·apply 인자 거부, 커스텀 스폰 개수.
+  - 문서: `docs/ARCHITECTURE.md` 확장 포인트 표에 스폰 하한 페널티 행 추가(Game 연결은 Task 2.17, HUD 노출은 Task 2.19).
 
 - [ ] **Task 2.17: 스폰 페널티를 Game의 신규 공 발급에 연결**
   - 선행: Task 2.16. 기존 수정: `src/core/Game.ts`. 신규: `tests/gameSpawnPenalty.test.ts`.
