@@ -7,6 +7,13 @@ export interface PointerInputHandlers {
   readonly onChooseCard: (cardIndex: number) => boolean;
   readonly onRestart: () => void;
   readonly onNudge: (deltaX: number) => void;
+  /**
+   * Mouse-only hover in client coordinates (session B card lift effect).
+   * Touch pointers never fire it — a touch "hover" would be misleading.
+   */
+  readonly onHover?: (clientX: number, clientY: number) => void;
+  /** The mouse pointer left the input target. */
+  readonly onHoverEnd?: () => void;
 }
 
 /**
@@ -36,6 +43,9 @@ export class PointerInput {
         return;
       }
       this.handlers.onAim(event.clientX);
+      if (event.pointerType === 'mouse') {
+        this.handlers.onHover?.(event.clientX, event.clientY);
+      }
     });
     this.listen(this.target, 'pointerup', (event: PointerEvent) => {
       if (this.activePointerId !== event.pointerId) {
@@ -49,6 +59,11 @@ export class PointerInput {
     this.listen(this.target, 'pointercancel', (event: PointerEvent) => {
       if (this.activePointerId === event.pointerId) {
         this.activePointerId = null;
+      }
+    });
+    this.listen(this.target, 'pointerleave', (event: PointerEvent) => {
+      if (event.pointerType === 'mouse') {
+        this.handlers.onHoverEnd?.();
       }
     });
     this.listen(this.target, 'contextmenu', (event: Event) => {

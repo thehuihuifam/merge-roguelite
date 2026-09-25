@@ -22,3 +22,14 @@ export function easeOutCubic(t: number): number {
   const x = clamp01(t);
   return 1 - Math.pow(1 - x, 3);
 }
+
+/**
+ * Springy overshoot (canvas counterpart of `DESIGN.easing.emphasis`). The
+ * overshoot amount mirrors the token's 1.56 control point, so card entrances
+ * pop exactly as the design system prescribes.
+ */
+export function easeOutBack(t: number, overshoot = 1.56): number {
+  const x = clamp01(t);
+  const inv = x - 1;
+  return 1 + inv * inv * ((overshoot + 1) * inv + overshoot);
+}

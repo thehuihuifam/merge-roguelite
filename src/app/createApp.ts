@@ -181,6 +181,9 @@ export function createApp(root: HTMLElement): App {
     if (card === undefined || !game.chooseCard(card)) {
       return false;
     }
+    // The overlay keeps drawing for a beat: the chosen card scales up and
+    // fades while the rest of the hand leaves with it (session B, Task 4).
+    renderer.notifyCardChosen(cardIndex);
     audio.play('card_pick', { volume: 0.7 });
     return true;
   };
@@ -223,6 +226,12 @@ export function createApp(root: HTMLElement): App {
       const current = Number.isFinite(lastAimX) ? lastAimX : (game.getSnapshot().held?.x ?? 0);
       lastAimX = current + deltaX;
       game.setAimX(lastAimX);
+    },
+    onHover: (clientX: number, clientY: number): void => {
+      renderer.setCardHover(renderer.toBoardX(clientX), renderer.toBoardY(clientY));
+    },
+    onHoverEnd: (): void => {
+      renderer.setCardHover(null, null);
     },
   });
 

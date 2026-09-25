@@ -1,6 +1,9 @@
 import { BOARD, CARD_OVERLAY, DESIGN, FONT_STACK, TEXT } from '@/config/gameConfig';
 import { isRiskCard } from '@/core/interfaces/IMergeCard';
-import { PALETTE } from '@/render/palette';
+import { clamp01, easeOutBack, easeOutCubic } from '@/render/motion';
+import { traceRoundedRect as traceRoundedRectPath } from '@/render/paths';
+import { PALETTE, withAlpha } from '@/render/palette';
+import type { CardOverlayPresentation } from '@/render/CardOverlayAnimator';
 import type { MergeCard } from '@/core/interfaces/IMergeCard';
 
 const FONT = FONT_STACK;
@@ -54,15 +57,38 @@ export function cardIndexAt(cards: readonly MergeCard[], x: number, y: number): 
 
 /**
  * Draws the card choice over a dimmed board. Reward cards get a neutral frame,
- * risk cards the danger colour plus a `RISK` badge, so the trap is readable in
- * the split second the slow-motion window allows.
+ * risk cards the danger colour plus a `RISK` badge and a subtle red blush
+ * gradient in the background, so the trap is readable in the split second the
+ * slow-motion window allows.
+ *
+ * `presentation` (session B, Task 4) drives the animation: the hand springs
+ * in (scale + fade, `easeOutBack` — the canvas counterpart of
+ * `DESIGN.easing.emphasis`), the chosen card scales up slightly as everything
+ * fades out on exit, and the hovered card lifts under the mouse. Omit it for
+ * the static full-visibility draw.
  */
-export function drawCardOverlay(ctx: CanvasRenderingContext2D, cards: readonly MergeCard[]): void {
+export function drawCardOverlay(
+  ctx: CanvasRenderingContext2D,
+  cards: readonly MergeCard[],
+  presentation?: CardOverlayPresentation,
+): void {
   if (cards.length === 0) {
     return;
   }
+  const entranceT = clamp01(presentation?.entrance ?? 1);
+  const entranceFade = easeOutCubic(entranceT);
+  const entranceScale =
+    CARD_OVERLAY.entranceScaleFrom + (1 - CARD_OVERLAY.entranceScaleFrom) * easeOutBack(entranceT);
+  const exitT = presentation?.exit ?? null;
+  const exitEase = exitT === null ? 0 : easeOutCubic(exitT);
+  const dimAlpha = exitT === null ? entranceFade : 1 - exitEase;
+  if (dimAlpha <= 0) {
+    return;
+  }
+
   ctx.save();
 
+  ctx.globalAlpha = dimAlpha;
   ctx.fillStyle = PALETTE.overlay;
   ctx.fillRect(0, 0, BOARD.width, BOARD.height);
 
@@ -85,25 +111,67 @@ export function drawCardOverlay(ctx: CanvasRenderingContext2D, cards: readonly M
     if (rect === undefined) {
       return;
     }
-    drawCard(ctx, card, rect);
+    const hovered = presentation?.hoverIndex === index && exitT === null;
+    const chosen = presentation?.selectedIndex === index && exitT !== null;
+    const exitScale = chosen ? 1 + (CARD_OVERLAY.exitScaleTo - 1) * exitEase : 1;
+    const scale = entranceScale * exitScale;
+    const alpha = entranceFade * (exitT === null ? 1 : 1 - exitEase);
+    const lift = hovered ? -CARD_OVERLAY.hoverLiftPx : 0;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    applyCardTransform(ctx, rect, scale, lift);
+    drawCard(ctx, card, rect, hovered);
+    ctx.restore();
   });
 
   ctx.restore();
 }
 
-function drawCard(ctx: CanvasRenderingContext2D, card: MergeCard, rect: CardRect): void {
+/** Scales the card around its (lifted) centre; identity transforms are skipped. */
+function applyCardTransform(
+  ctx: CanvasRenderingContext2D,
+  rect: CardRect,
+  scale: number,
+  lift: number,
+): void {
+  if (Math.abs(scale - 1) < 1e-9 && lift === 0) {
+    return;
+  }
+  const centerX = rect.x + rect.width / 2;
+  const centerY = rect.y + rect.height / 2;
+  ctx.translate(centerX, centerY + lift);
+  ctx.scale(scale, scale);
+  ctx.translate(-centerX, -centerY);
+}
+
+function drawCard(
+  ctx: CanvasRenderingContext2D,
+  card: MergeCard,
+  rect: CardRect,
+  hovered: boolean,
+): void {
   const risk = isRiskCard(card);
   const innerWidth = rect.width - CARD_OVERLAY.padding * 2;
 
   ctx.save();
   traceRoundedRect(ctx, rect);
   // Cards hover over the dimmed board with a soft accent glow: violet for
-  // rewards, danger red for risks — the frame colour says what a glance needs.
+  // rewards, danger red for risks — the frame colour says what a glance
+  // needs. A hovered card lifts (transform) and deepens its glow.
   ctx.shadowColor = risk ? PALETTE.card.riskBorder : PALETTE.card.rewardBorder;
-  ctx.shadowBlur = DESIGN.glow.subtle;
+  ctx.shadowBlur = hovered ? DESIGN.glow.medium : DESIGN.glow.subtle;
   ctx.fillStyle = PALETTE.card.background;
   ctx.fill();
   ctx.shadowBlur = 0;
+  if (risk) {
+    // Subtle blood-blush from the top edge: risk reads as atmosphere before
+    // it reads as alarm. Derived from the risk border token, never a new hue.
+    const gradient = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.height);
+    gradient.addColorStop(0, withAlpha(PALETTE.card.riskBorder, CARD_OVERLAY.riskGradientAlpha));
+    gradient.addColorStop(1, withAlpha(PALETTE.card.riskBorder, 0));
+    ctx.fillStyle = gradient;
+    ctx.fill();
+  }
   ctx.lineWidth = risk ? CARD_OVERLAY.riskBorderWidth : CARD_OVERLAY.borderWidth;
   ctx.strokeStyle = risk ? PALETTE.card.riskBorder : PALETTE.card.rewardBorder;
   ctx.stroke();
@@ -154,16 +222,7 @@ function drawRiskBadge(ctx: CanvasRenderingContext2D, rect: CardRect): void {
 }
 
 function traceRoundedRect(ctx: CanvasRenderingContext2D, rect: CardRect): void {
-  const radius = Math.min(CARD_OVERLAY.cornerRadius, rect.width / 2, rect.height / 2);
-  const right = rect.x + rect.width;
-  const bottom = rect.y + rect.height;
-  ctx.beginPath();
-  ctx.moveTo(rect.x + radius, rect.y);
-  ctx.arcTo(right, rect.y, right, bottom, radius);
-  ctx.arcTo(right, bottom, rect.x, bottom, radius);
-  ctx.arcTo(rect.x, bottom, rect.x, rect.y, radius);
-  ctx.arcTo(rect.x, rect.y, right, rect.y, radius);
-  ctx.closePath();
+  traceRoundedRectPath(ctx, rect.x, rect.y, rect.width, rect.height, CARD_OVERLAY.cornerRadius);
 }
 
 /** Greedy word wrap; the overlay has only a split second to be readable. */

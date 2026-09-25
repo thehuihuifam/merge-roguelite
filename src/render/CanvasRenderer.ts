@@ -1,7 +1,8 @@
 import { BOARD, FX, GAME_OVER, SPAWN_Y } from '@/config/gameConfig';
 import { getTierSpec } from '@/core/ball/BallFactory';
 import { drawBalls, pruneBallFx, triggerMergePop, updateBallFx } from '@/render/BallRenderer';
-import { drawCardOverlay } from '@/render/CardOverlayRenderer';
+import { drawCardOverlay, cardIndexAt } from '@/render/CardOverlayRenderer';
+import { CardOverlayAnimator } from '@/render/CardOverlayAnimator';
 import { drawDangerLine } from '@/render/DangerLineRenderer';
 import {
   RoundGaugeAnimator,
@@ -50,6 +51,10 @@ export class CanvasRenderer {
   private readonly hudProgression = new HudProgressionAnimator();
   private readonly roundGauge = new RoundGaugeAnimator();
   private readonly gameOverPresenter = new GameOverPresenter();
+  private readonly cardAnimator = new CardOverlayAnimator();
+  /** Last mouse position in board coordinates (null = not hovering). */
+  private hoverX: number | null = null;
+  private hoverY: number | null = null;
   private readonly clock: Clock;
   private readonly particles: IParticleSystem | undefined;
   private lastFrameMs: number | null = null;
@@ -153,6 +158,21 @@ export class CanvasRenderer {
     this.pipeline?.pulseChromaticAberration(strength);
   }
 
+  /**
+   * Starts the card-selection exit animation (session B, Task 4): the chosen
+   * card scales up slightly while the hand fades out over
+   * `CARD_OVERLAY.exitMs`. Called by the app layer when a choice lands.
+   */
+  notifyCardChosen(cardIndex: number): void {
+    this.cardAnimator.notifyChosen(cardIndex);
+  }
+
+  /** Mouse position in board coordinates for the card hover lift; null clears. */
+  setCardHover(boardX: number | null, boardY: number | null): void {
+    this.hoverX = boardX;
+    this.hoverY = boardY;
+  }
+
   /** Trigger screen flash for big merges / bomb. */
   triggerFlash(color: string = FX.flashColor, alpha: number = FX.flashAlpha): void {
     this.flashRemainingMs = FX.flashDurationMs;
@@ -241,6 +261,13 @@ export class CanvasRenderer {
     }
     const roundProgress = roundProgressOf(snapshot);
     this.roundGauge.update(roundProgress, deltaMs);
+    const liveCards = snapshot.state === 'slowmo_select' ? snapshot.pendingCards : [];
+    this.cardAnimator.update(liveCards, deltaMs);
+    if (liveCards.length > 0 && this.hoverX !== null && this.hoverY !== null) {
+      this.cardAnimator.setHover(cardIndexAt(liveCards, this.hoverX, this.hoverY));
+    } else {
+      this.cardAnimator.setHover(null);
+    }
     const activeIds = new Set<number>(snapshot.balls.map((b) => b.id));
     pruneBallFx(activeIds);
 
@@ -292,8 +319,11 @@ export class CanvasRenderer {
 
     ctx.restore();
 
-    if (snapshot.state === 'slowmo_select') {
-      drawCardOverlay(ctx, snapshot.pendingCards);
+    // Card overlay: live hand (springing in) or the exit animation that keeps
+    // drawing for a beat after the choice closed the window.
+    const cardFrame = this.cardAnimator.getFrame();
+    if (cardFrame !== null) {
+      drawCardOverlay(ctx, cardFrame.cards, cardFrame.presentation);
     }
 
     drawHud(ctx, snapshot, this.hudProgression);

@@ -197,6 +197,23 @@ export const CARD_OVERLAY = {
   bodyLineHeight: 15,
   badgeHeight: 18,
   badgeWidth: 46,
+  /**
+   * Animation (UX overhaul session B, Task 4). Entrance springs in with the
+   * canvas counterpart of `DESIGN.easing.emphasis` (`easeOutBack`), exits
+   * decelerate with `easeOutCubic` — see `src/render/motion.ts`.
+   */
+  /** Entrance: scale-in + fade-in when the hand appears, ms. */
+  entranceMs: 200,
+  /** Scale the hand springs up from during the entrance. */
+  entranceScaleFrom: 0.86,
+  /** Exit: the chosen card scales up slightly as the hand fades, ms. */
+  exitMs: 150,
+  /** Scale the chosen card grows to while exiting. */
+  exitScaleTo: 1.08,
+  /** How far a hovered card lifts under the mouse, board units. */
+  hoverLiftPx: DESIGN.space.sm,
+  /** Alpha of the risk blush at the top edge of a risk card's background. */
+  riskGradientAlpha: 0.16,
 } as const;
 
 /** Score awarded when two max-tier balls merge and vanish. */

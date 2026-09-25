@@ -55,9 +55,14 @@ function createStubContext(): { ctx: CanvasRenderingContext2D; texts: string[] }
     textAlign: '',
     textBaseline: '',
     lineWidth: 1,
+    globalAlpha: 1,
+    shadowColor: '',
+    shadowBlur: 0,
     save: noop,
     restore: noop,
     fillRect: noop,
+    translate: noop,
+    scale: noop,
     beginPath: noop,
     moveTo: noop,
     arcTo: noop,
@@ -68,6 +73,10 @@ function createStubContext(): { ctx: CanvasRenderingContext2D; texts: string[] }
       texts.push(text);
     },
     measureText: (text: string): { width: number } => ({ width: text.length * 6 }),
+    // Risk cards blush with a gradient derived from the risk border token.
+    createLinearGradient: (): { addColorStop: (offset: number, color: string) => void } => ({
+      addColorStop: noop,
+    }),
   };
   return { ctx: stub as unknown as CanvasRenderingContext2D, texts };
 }

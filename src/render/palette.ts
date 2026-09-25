@@ -92,3 +92,19 @@ export const PALETTE = {
     badgeText: '#0d0d1c',
   },
 } as const;
+
+/**
+ * Converts a `#rrggbb` palette token into an `rgba()` string at the given
+ * alpha, so translucent variants always derive from the token itself —
+ * no parallel hex colours. Non-hex input is returned unchanged.
+ */
+export function withAlpha(hex: string, alpha: number): string {
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) {
+    return hex;
+  }
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const a = Number.isFinite(alpha) ? Math.min(1, Math.max(0, alpha)) : 0;
+  return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+}
