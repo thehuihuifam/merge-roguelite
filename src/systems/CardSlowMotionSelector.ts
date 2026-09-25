@@ -10,8 +10,8 @@ import type { MergeEvent } from '@/core/types';
  * into `slowmo_select` and offer cards from the injected `IMergeCardProvider`.
  * The provider guarantees exactly `SLOW_MOTION.riskCardCount` risk cards.
  *
- * The hand drawn for the current merge is remembered so `onTimeout` can pick
- * from the very cards the player was looking at instead of drawing a new hand.
+ * The card choice is unlimited (`SLOW_MOTION.choiceTimeoutMs === null`): the
+ * window stays open until the player picks, so `onTimeout` never auto-selects.
  */
 export class CardSlowMotionSelector implements ISlowMotionSelector {
   private readonly provider: IMergeCardProvider;
@@ -38,21 +38,26 @@ export class CardSlowMotionSelector implements ISlowMotionSelector {
   }
 
   onCardChosen(_card: MergeCard, _merge: MergeEvent): void {
-    // The choice window is closed: forget the hand so a later timeout cannot
+    // The choice window is closed: forget the hand so a later call cannot
     // resurrect cards the player already dismissed.
     this.offeredCards = [];
   }
 
   offerCards(_merge: MergeEvent, cards: readonly MergeCard[]): void {
     // Round-clear choices (Task 2.13) bypass onMergeMoment; remember the hand
-    // so onTimeout still falls back to a card the player was shown.
+    // for the same defensive bookkeeping.
     this.offeredCards = cards;
   }
 
   onTimeout(merge: MergeEvent): MergeCard | null {
-    // Normally the hand is the one drawn in onMergeMoment. Drawing a fresh one
-    // keeps the fallback correct even if a timeout ever arrives without an
-    // active offer (defensive: the player must never be handed a risk card).
+    // Timer expiry is disabled while choices are unlimited
+    // (`SLOW_MOTION.choiceTimeoutMs === null`): the selector never picks a
+    // card on the player's behalf. The defensive non-risk fallback below only
+    // applies when a host configures a real timeout again.
+    if (SLOW_MOTION.choiceTimeoutMs === null) {
+      this.offeredCards = [];
+      return null;
+    }
     const hand = this.offeredCards.length > 0 ? this.offeredCards : this.drawHand(merge);
     this.offeredCards = [];
     return hand.find((card) => !isRiskCard(card)) ?? null;

@@ -1,4 +1,4 @@
-import { FONT_STACK, SPAWN_PENALTY_HUD, TEXT } from '@/config/gameConfig';
+import { DESIGN, FONT_STACK, SPAWN_PENALTY_HUD, TEXT } from '@/config/gameConfig';
 import { PALETTE } from '@/render/palette';
 import type { GameSnapshot } from '@/core/Game';
 
@@ -18,8 +18,8 @@ export function drawSpawnPenaltyHud(ctx: CanvasRenderingContext2D, snapshot: Gam
   ctx.save();
   ctx.textBaseline = 'top';
   ctx.textAlign = 'right';
-  ctx.fillStyle = PALETTE.cardRiskText;
-  ctx.font = `600 ${SPAWN_PENALTY_HUD.labelFontSize}px ${FONT}`;
+  ctx.fillStyle = PALETTE.card.riskText;
+  ctx.font = `${DESIGN.fontWeight.medium} ${DESIGN.fontSize.caption}px ${FONT}`;
   ctx.fillText(
     TEXT.spawnPenaltyDetail(penalty.minTier, penalty.remainingIssuances),
     SPAWN_PENALTY_HUD.x,

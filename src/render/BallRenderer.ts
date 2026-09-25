@@ -1,4 +1,4 @@
-import { FONT_STACK, FX } from '@/config/gameConfig';
+import { DESIGN, FONT_STACK, FX, MAX_TIER } from '@/config/gameConfig';
 import { getTierSpec } from '@/core/ball/BallFactory';
 import { PALETTE } from '@/render/palette';
 import type { Ball } from '@/core/types';
@@ -111,7 +111,11 @@ export function pruneBallFx(activeIds: Set<number>): void {
 }
 
 /** For tests: get current scale for a ball, or identity if none. */
-export function getBallFxForTest(id: number): { squashX: number; squashY: number; popScale: number } {
+export function getBallFxForTest(id: number): {
+  squashX: number;
+  squashY: number;
+  popScale: number;
+} {
   const s = ballFx.get(id);
   if (s === undefined) {
     return { squashX: 1, squashY: 1, popScale: 1 };
@@ -145,7 +149,15 @@ export function drawBallShape(
   ctx.beginPath();
   ctx.arc(0, 0, spec.radius, 0, Math.PI * 2);
   ctx.fillStyle = spec.color;
+  const glow = ballGlowBlur(tier);
+  if (glow > 0) {
+    // "Luminous" high tiers: the fill bleeds its own colour into the dark
+    // board; the bloom post-process then amplifies it on WebGL devices.
+    ctx.shadowColor = spec.color;
+    ctx.shadowBlur = glow;
+  }
   ctx.fill();
+  ctx.shadowBlur = 0;
   ctx.lineWidth = 2;
   ctx.strokeStyle = PALETTE.ballStroke;
   ctx.stroke();
@@ -159,11 +171,11 @@ export function drawBallShape(
 
   if (special === 'bomb') {
     ctx.lineWidth = 3;
-    ctx.strokeStyle = PALETTE.bombRing;
+    ctx.strokeStyle = PALETTE.bomb.ring;
     ctx.beginPath();
     ctx.arc(0, 0, spec.radius - 1.5, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.fillStyle = PALETTE.bombSpark;
+    ctx.fillStyle = PALETTE.bomb.spark;
     ctx.font = `700 ${Math.max(10, Math.floor(spec.radius * 0.55))}px ${FONT}`;
     ctx.fillText('✹', spec.radius * 0.55, -spec.radius * 0.55);
   }
@@ -175,4 +187,18 @@ export function drawBalls(ctx: CanvasRenderingContext2D, balls: readonly Ball[])
     const fx = ballFx.get(ball.id);
     drawBallShape(ctx, ball.position.x, ball.position.y, ball.tier, 1, ball.special ?? null, fx);
   }
+}
+
+/**
+ * Glow (shadowBlur) for a ball tier: 0 below `DESIGN.glow.ballFromTier`,
+ * then ramping linearly from `subtle` to `strong` at the max tier.
+ */
+export function ballGlowBlur(tier: number): number {
+  const { subtle, strong, ballFromTier } = DESIGN.glow;
+  if (tier < ballFromTier) {
+    return 0;
+  }
+  const span = Math.max(1, MAX_TIER - ballFromTier);
+  const progress = Math.min(1, Math.max(0, (tier - ballFromTier) / span));
+  return subtle + (strong - subtle) * progress;
 }

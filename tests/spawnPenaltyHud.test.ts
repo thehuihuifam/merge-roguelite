@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { BOARD, DANGER_LINE_Y, PHYSICS_STEP_MS } from '@/config/gameConfig';
+import { BOARD, DANGER_LINE_Y, PHYSICS_STEP_MS, DESIGN } from '@/config/gameConfig';
 import { Game } from '@/core/Game';
 import { OverflowDetector } from '@/core/danger/OverflowDetector';
 import { SPAWN_PENALTY_HUD } from '@/config/gameConfig';
 import { drawSpawnPenaltyHud } from '@/render/SpawnPenaltyHudRenderer';
+import { PALETTE } from '@/render/palette';
 import type { GameSnapshot } from '@/core/Game';
 import type { MergeCardContext, RiskCard } from '@/core/interfaces/IMergeCard';
 
@@ -150,7 +151,7 @@ describe('drawSpawnPenaltyHud', () => {
     drawSpawnPenaltyHud(ctx, snapshot);
 
     expect(texts).toEqual(['스폰 ≥3 · 2개 남음']);
-    expect(styles).toEqual(['#ff8fa3']);
+    expect(styles).toEqual([PALETTE.card.riskText]);
   });
 
   it('draws nothing while the penalty field is absent', () => {
@@ -166,9 +167,7 @@ describe('drawSpawnPenaltyHud', () => {
     // ROUND is drawn on the left column at the same height, so the spawn HUD
     // must stay right-aligned.
     expect(SPAWN_PENALTY_HUD.y).toBeGreaterThanOrEqual(NEXT_PREVIEW_BOTTOM);
-    expect(SPAWN_PENALTY_HUD.y + SPAWN_PENALTY_HUD.labelFontSize).toBeLessThanOrEqual(
-      DANGER_LINE_Y,
-    );
+    expect(SPAWN_PENALTY_HUD.y + DESIGN.fontSize.caption).toBeLessThanOrEqual(DANGER_LINE_Y);
     expect(SPAWN_PENALTY_HUD.x).toBe(BOARD.width - 14);
     expect(SPAWN_PENALTY_HUD.x).toBeGreaterThan(200);
   });

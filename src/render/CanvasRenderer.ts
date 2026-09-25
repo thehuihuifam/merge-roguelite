@@ -6,6 +6,7 @@ import { drawDangerLine } from '@/render/DangerLineRenderer';
 import { drawGameOver, drawHeldBall, drawHud, drawIdle } from '@/render/HudRenderer';
 import { NearMissVignetteAnimator, drawNearMissVignette } from '@/render/NearMissVignetteRenderer';
 import { drawSpawnPenaltyHud } from '@/render/SpawnPenaltyHudRenderer';
+import { PostProcessPipeline } from '@/render/PostProcessPipeline';
 import { PALETTE } from '@/render/palette';
 import type { GameSnapshot } from '@/core/Game';
 import type { IParticleSystem } from '@/core/interfaces/IParticleSystem';
@@ -26,9 +27,18 @@ export interface CanvasRendererOptions {
  * Renders a GameSnapshot to a 2D canvas. Keeps the logical board size fixed
  * and scales to the element's CSS size with device-pixel-ratio awareness.
  * Includes FX: flash, shake, ball squash-stretch and merge pop.
+ *
+ * Two coexisting paths:
+ * - WebGL (default when available): the scene is drawn to an offscreen 2D
+ *   canvas, then `PostProcessPipeline` uploads it as a texture and runs the
+ *   single-pass bloom/vignette/chromatic/grain shader onto the visible canvas.
+ * - Canvas 2D fallback: when WebGL cannot be created, the scene is drawn
+ *   straight to the visible canvas exactly as before.
  */
 export class CanvasRenderer {
   private readonly ctx: CanvasRenderingContext2D;
+  private readonly pipeline: PostProcessPipeline | null;
+  private readonly offscreen: HTMLCanvasElement | null;
   private readonly vignette = new NearMissVignetteAnimator();
   private readonly clock: Clock;
   private readonly particles: IParticleSystem | undefined;
@@ -37,7 +47,7 @@ export class CanvasRenderer {
 
   // FX state
   private flashRemainingMs = 0;
-  private flashColor = '#ffffff';
+  private flashColor: string = FX.flashColor;
   private flashAlpha: number = FX.flashAlpha;
   private shakeRemainingMs = 0;
   private shakeOffsetX = 0;
@@ -48,11 +58,36 @@ export class CanvasRenderer {
     private readonly canvas: HTMLCanvasElement,
     clockOrOptions: Clock | CanvasRendererOptions = defaultClock,
   ) {
-    const ctx = canvas.getContext('2d');
+    // WebGL post-processing when supported, direct Canvas 2D otherwise.
+    let pipeline: PostProcessPipeline | null = null;
+    let offscreen: HTMLCanvasElement | null = null;
+    let ctx: CanvasRenderingContext2D | null = null;
+    if (PostProcessPipeline.isSupported()) {
+      try {
+        pipeline = PostProcessPipeline.create(canvas);
+        offscreen = document.createElement('canvas');
+        ctx = offscreen.getContext('2d');
+        if (ctx === null) {
+          pipeline.dispose();
+          pipeline = null;
+          offscreen = null;
+        }
+      } catch (error) {
+        console.warn('WebGL post-processing unavailable; using direct Canvas 2D.', error);
+        pipeline = null;
+        offscreen = null;
+        ctx = null;
+      }
+    }
+    if (ctx === null) {
+      ctx = canvas.getContext('2d');
+    }
     if (ctx === null) {
       throw new Error('2D canvas context is not available');
     }
     this.ctx = ctx;
+    this.pipeline = pipeline;
+    this.offscreen = offscreen;
     if (typeof clockOrOptions === 'function') {
       this.clock = clockOrOptions;
       this.particles = undefined;
@@ -66,13 +101,18 @@ export class CanvasRenderer {
   /** Fits the board inside the canvas' CSS box, preserving aspect ratio. */
   resize(): void {
     const dpr =
-      (typeof window !== 'undefined' ? (window as { devicePixelRatio?: number }).devicePixelRatio : 1) ||
-      1;
+      (typeof window !== 'undefined'
+        ? (window as { devicePixelRatio?: number }).devicePixelRatio
+        : 1) || 1;
     const rect = this.canvas.getBoundingClientRect();
     const cssWidth = Math.max(1, rect.width);
     const cssHeight = Math.max(1, rect.height);
     this.canvas.width = Math.floor(cssWidth * dpr);
     this.canvas.height = Math.floor(cssHeight * dpr);
+    if (this.offscreen !== null) {
+      this.offscreen.width = this.canvas.width;
+      this.offscreen.height = this.canvas.height;
+    }
     this.scale = Math.min(cssWidth / BOARD.width, cssHeight / BOARD.height);
   }
 
@@ -90,8 +130,21 @@ export class CanvasRenderer {
     return (clientY - rect.top - offsetY) / this.scale;
   }
 
+  /** True when frames run through the WebGL post-process pipeline. */
+  get postProcessingEnabled(): boolean {
+    return this.pipeline !== null;
+  }
+
+  /**
+   * Pulses chromatic aberration (merge / bomb detonation moments). No-op on
+   * the Canvas 2D fallback path.
+   */
+  triggerChromaticAberration(strength: number): void {
+    this.pipeline?.pulseChromaticAberration(strength);
+  }
+
   /** Trigger screen flash for big merges / bomb. */
-  triggerFlash(color: string = '#ffffff', alpha: number = FX.flashAlpha): void {
+  triggerFlash(color: string = FX.flashColor, alpha: number = FX.flashAlpha): void {
     this.flashRemainingMs = FX.flashDurationMs;
     this.flashColor = color;
     this.flashAlpha = alpha;
@@ -100,7 +153,7 @@ export class CanvasRenderer {
   /** Trigger flash based on tier (white for bomb/max, tier color otherwise). */
   triggerFlashForTier(tier: number | null): void {
     if (tier === null) {
-      this.triggerFlash('#ffffff', FX.flashAlpha);
+      this.triggerFlash(FX.flashColor, FX.flashAlpha);
       return;
     }
     if (tier >= FX.flashTierThreshold) {
@@ -159,8 +212,9 @@ export class CanvasRenderer {
   render(snapshot: GameSnapshot): void {
     const ctx = this.ctx;
     const dpr =
-      (typeof window !== 'undefined' ? (window as { devicePixelRatio?: number }).devicePixelRatio : 1) ||
-      1;
+      (typeof window !== 'undefined'
+        ? (window as { devicePixelRatio?: number }).devicePixelRatio
+        : 1) || 1;
     const cssWidth = this.canvas.width / dpr;
     const cssHeight = this.canvas.height / dpr;
 
@@ -173,7 +227,7 @@ export class CanvasRenderer {
     pruneBallFx(activeIds);
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.fillStyle = PALETTE.background;
+    ctx.fillStyle = PALETTE.bg.deep;
     ctx.fillRect(0, 0, cssWidth, cssHeight);
 
     const offsetX = (cssWidth - BOARD.width * this.scale) / 2;
@@ -185,9 +239,9 @@ export class CanvasRenderer {
       ctx.translate(this.shakeOffsetX, this.shakeOffsetY);
     }
 
-    ctx.fillStyle = PALETTE.board;
+    ctx.fillStyle = PALETTE.bg.board;
     ctx.fillRect(0, 0, BOARD.width, BOARD.height);
-    ctx.strokeStyle = PALETTE.boardBorder;
+    ctx.strokeStyle = PALETTE.bg.panel;
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, BOARD.width - 2, BOARD.height - 2);
 
@@ -226,6 +280,13 @@ export class CanvasRenderer {
       drawIdle(ctx);
     } else if (snapshot.state === 'game_over') {
       drawGameOver(ctx, snapshot);
+    }
+
+    // WebGL path: the scene above landed on the offscreen canvas — upload it
+    // as a texture and run the composed post-process shader onto the screen.
+    if (this.pipeline !== null && this.offscreen !== null) {
+      this.pipeline.setNearMissIntensity(snapshot.nearMissIntensity);
+      this.pipeline.render(this.offscreen, frameMs);
     }
   }
 }

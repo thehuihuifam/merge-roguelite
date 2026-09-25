@@ -1,4 +1,56 @@
+import { PALETTE } from '@/render/palette';
 import type { BallTierSpec } from '@/core/types';
+
+/**
+ * Design-system tokens (UI/graphics overhaul session A): one type scale,
+ * one spacing scale, shared motion curves and shadow/glow presets. Renderers
+ * reference these instead of hardcoded sizes and margins.
+ */
+export const DESIGN = {
+  /** Type scale, px. display: titles · heading: big numbers · body: data · caption: labels/hints. */
+  fontSize: {
+    display: 40,
+    heading: 26,
+    body: 16,
+    caption: 12,
+  },
+  /** Canvas font weights used across the HUD and overlays. */
+  fontWeight: {
+    medium: 600,
+    bold: 700,
+    black: 800,
+  },
+  /** Spacing scale, board units. */
+  space: {
+    xs: 4,
+    sm: 8,
+    md: 12,
+    lg: 16,
+    xl: 24,
+  },
+  /** Motion curves (CSS cubic-bezier strings, for DOM + future UI sessions). */
+  easing: {
+    /** Default UI transitions. */
+    standard: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    /** Springy emphasis — rewards, pops. */
+    emphasis: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+    /** Entering elements decelerate to rest. */
+    decelerate: 'cubic-bezier(0, 0, 0.2, 1)',
+  },
+  /** Drop shadow blur radii, board units. */
+  shadow: {
+    subtle: 4,
+    medium: 10,
+    strong: 20,
+  },
+  /** Glow (shadowBlur) radii, board units. High-tier balls glow from `ballFromTier` up. */
+  glow: {
+    subtle: 6,
+    medium: 14,
+    strong: 26,
+    ballFromTier: 5,
+  },
+} as const;
 
 /** Logical board size in world units (pixels at 1x scale). */
 export const BOARD = {
@@ -60,10 +112,23 @@ export const PHYSICS_STEP_MS = 1000 / 60;
 /** Maximum physics sub-steps per frame, to avoid spiral of death on slow tabs. */
 export const MAX_SUBSTEPS_PER_FRAME = 5;
 
-/** Slow-motion parameters used by the merge-moment extension point. */
+/**
+ * Slow-motion parameters used by the merge-moment extension point.
+ */
 export const SLOW_MOTION = {
+  /**
+   * Length of the slow-motion visual effect (0.25x time scale), in real-time
+   * ms. Unrelated to how long the card choice waits: the choice itself has
+   * no time limit.
+   */
   durationMs: 400,
-  choiceTimeoutMs: 2500,
+  /**
+   * Auto-select timer for the card choice, in real-time ms — or `null` to
+   * disable the timeout entirely. `null` means the choice window stays open
+   * until the player picks a card; the game never chooses for them (an
+   * auto-closing choice window ruined the decision moment).
+   */
+  choiceTimeoutMs: null as number | null,
   timeScale: 0.25,
   cardCount: 3,
   riskCardCount: 1,
@@ -129,8 +194,6 @@ export const CARD_OVERLAY = {
   padding: 12,
   borderWidth: 2,
   riskBorderWidth: 3,
-  titleFontSize: 16,
-  bodyFontSize: 12,
   bodyLineHeight: 15,
   badgeHeight: 18,
   badgeWidth: 46,
@@ -190,7 +253,6 @@ export const SPAWN_PENALTY_HUD = {
   x: BOARD.width - 14,
   /** Top of the label line, board units. */
   y: 92,
-  labelFontSize: 12,
 } as const;
 
 /** Audio tuning (Task 2.6). Consumed by WebAudioSystem. */
@@ -252,25 +314,30 @@ export const BALL_MATERIAL = {
 /** Gravity in Matter.js units. */
 export const GRAVITY_Y = 1.15;
 
-/** All ball tiers, ordered from smallest to largest. */
+/**
+ * All ball tiers, ordered from smallest to largest. Colours come from the
+ * design-system ball ramp (`PALETTE.ballTier`, UX session A) so the board and
+ * the palette can never drift apart.
+ */
 export const BALL_TIERS: readonly BallTierSpec[] = [
-  { tier: 0, value: 2, radius: 16, color: '#f9c74f' },
-  { tier: 1, value: 4, radius: 21, color: '#f8961e' },
-  { tier: 2, value: 8, radius: 27, color: '#f3722c' },
-  { tier: 3, value: 16, radius: 34, color: '#f94144' },
-  { tier: 4, value: 32, radius: 42, color: '#e63946' },
-  { tier: 5, value: 64, radius: 51, color: '#9d4edd' },
-  { tier: 6, value: 128, radius: 61, color: '#7209b7' },
-  { tier: 7, value: 256, radius: 72, color: '#4361ee' },
-  { tier: 8, value: 512, radius: 84, color: '#4cc9f0' },
-  { tier: 9, value: 1024, radius: 97, color: '#43aa8b' },
-  { tier: 10, value: 2048, radius: 111, color: '#90be6d' },
+  { tier: 0, value: 2, radius: 16, color: PALETTE.ballTier[0] },
+  { tier: 1, value: 4, radius: 21, color: PALETTE.ballTier[1] },
+  { tier: 2, value: 8, radius: 27, color: PALETTE.ballTier[2] },
+  { tier: 3, value: 16, radius: 34, color: PALETTE.ballTier[3] },
+  { tier: 4, value: 32, radius: 42, color: PALETTE.ballTier[4] },
+  { tier: 5, value: 64, radius: 51, color: PALETTE.ballTier[5] },
+  { tier: 6, value: 128, radius: 61, color: PALETTE.ballTier[6] },
+  { tier: 7, value: 256, radius: 72, color: PALETTE.ballTier[7] },
+  { tier: 8, value: 512, radius: 84, color: PALETTE.ballTier[8] },
+  { tier: 9, value: 1024, radius: 97, color: PALETTE.ballTier[9] },
+  { tier: 10, value: 2048, radius: 111, color: PALETTE.ballTier[10] },
 ];
 
 export const MAX_TIER = BALL_TIERS.length - 1;
 
 /** Korean font stack for Canvas text rendering. */
-export const FONT_STACK = 'Pretendard, -apple-system, BlinkMacSystemFont, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif';
+export const FONT_STACK =
+  'Pretendard, -apple-system, BlinkMacSystemFont, "Noto Sans KR", "Apple SD Gothic Neo", sans-serif';
 
 /**
  * Centralized Korean UI strings (i18n).
@@ -296,10 +363,12 @@ export const TEXT = {
   startHint: '클릭/터치로 시작',
   // Dynamic templates — functions return Korean strings
   slowMotionBadgeDynamic: (scaleText: string): string => `슬로우 ×${scaleText}`,
-  roundStatus: (index: number, dropsLeft: number): string => `라운드 ${index} · ${dropsLeft}개 남음`,
+  roundStatus: (index: number, dropsLeft: number): string =>
+    `라운드 ${index} · ${dropsLeft}개 남음`,
   scoreProgress: (progress: number, target: number): string =>
     `${progress.toLocaleString('ko-KR')} / ${target.toLocaleString('ko-KR')}`,
-  chooseSubtext: (ms: number): string => `카드를 터치하세요 — ${ms}ms 후 안전한 카드가 자동 선택됩니다`,
+  /** Card overlay hint: the choice has no time limit. */
+  chooseSubtext: '카드를 터치하세요 — 시간 제한 없음',
   spawnPenaltyDetail: (minTier: number, remaining: number): string =>
     `스폰 ≥${minTier} · ${remaining}개 남음`,
   scoreSummary: (score: string): string => `점수 ${score}`,
@@ -325,10 +394,49 @@ export const TEXT = {
 };
 
 /**
+ * Post-processing tuning (UX overhaul session A). Consumed by
+ * `src/render/PostProcessPipeline.ts` and the four shader chunks in
+ * `src/render/shaders/`. All four effects are composed into ONE full-screen
+ * fragment-shader pass — never four separate passes (mobile frame budget).
+ */
+export const POST_FX = {
+  bloom: {
+    /** Master bloom strength. */
+    intensity: 0.65,
+    /** Luma threshold above which a pixel bleeds light into neighbours. */
+    threshold: 0.55,
+    /** Blur radius in texels for the bloom ring taps. */
+    radiusTexels: 1.7,
+  },
+  vignette: {
+    /** Always-on edge darkening for mood and focus. */
+    baseIntensity: 0.22,
+    /** Extra vignette added by near-miss pressure (severity 1). */
+    nearMissBoost: 0.5,
+  },
+  chromaticAberration: {
+    /** Always-on channel split, in UV units at the screen edge. */
+    baseIntensity: 0.0012,
+    /** Spike added when a big merge lands. */
+    mergeSpike: 0.01,
+    /** Spike added on bomb detonations and max-tier annihilations. */
+    detonationSpike: 0.028,
+    /** Exponential decay time constant of a spike, in ms. */
+    spikeDecayMs: 260,
+  },
+  grain: {
+    /** Always-on film grain for texture (subtle). */
+    intensity: 0.045,
+  },
+} as const;
+
+/**
  * Visual FX tuning (merge flash, camera shake, squash-stretch, merge pop).
  * All magic numbers for polish effects live here.
  */
 export const FX = {
+  /** Screen flash fill when a big tier merges or a bomb explodes. */
+  flashColor: '#ffffff',
   /** Screen flash when a big tier merges or bomb explodes */
   flashDurationMs: 100,
   flashAlpha: 0.35,

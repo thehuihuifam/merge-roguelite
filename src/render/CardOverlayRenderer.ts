@@ -1,4 +1,4 @@
-import { BOARD, CARD_OVERLAY, FONT_STACK, SLOW_MOTION, TEXT } from '@/config/gameConfig';
+import { BOARD, CARD_OVERLAY, DESIGN, FONT_STACK, TEXT } from '@/config/gameConfig';
 import { isRiskCard } from '@/core/interfaces/IMergeCard';
 import { PALETTE } from '@/render/palette';
 import type { MergeCard } from '@/core/interfaces/IMergeCard';
@@ -68,15 +68,15 @@ export function drawCardOverlay(ctx: CanvasRenderingContext2D, cards: readonly M
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.fillStyle = PALETTE.text;
-  ctx.font = `800 26px ${FONT}`;
+  ctx.fillStyle = PALETTE.text.primary;
+  ctx.font = `${DESIGN.fontWeight.black} ${DESIGN.fontSize.heading}px ${FONT}`;
   ctx.fillText(TEXT.chooseHeader, BOARD.width / 2, CARD_OVERLAY.headerY);
-  ctx.fillStyle = PALETTE.textMuted;
-  ctx.font = `600 13px ${FONT}`;
+  ctx.fillStyle = PALETTE.text.secondary;
+  ctx.font = `${DESIGN.fontWeight.medium} ${DESIGN.fontSize.caption}px ${FONT}`;
   ctx.fillText(
-    TEXT.chooseSubtext(SLOW_MOTION.choiceTimeoutMs),
+    TEXT.chooseSubtext,
     BOARD.width / 2,
-    CARD_OVERLAY.headerY + 34,
+    CARD_OVERLAY.headerY + DESIGN.fontSize.heading + DESIGN.space.sm,
   );
 
   const rects = cardRects(cards.length);
@@ -97,24 +97,29 @@ function drawCard(ctx: CanvasRenderingContext2D, card: MergeCard, rect: CardRect
 
   ctx.save();
   traceRoundedRect(ctx, rect);
-  ctx.fillStyle = PALETTE.cardBackground;
+  // Cards hover over the dimmed board with a soft accent glow: violet for
+  // rewards, danger red for risks — the frame colour says what a glance needs.
+  ctx.shadowColor = risk ? PALETTE.card.riskBorder : PALETTE.card.rewardBorder;
+  ctx.shadowBlur = DESIGN.glow.subtle;
+  ctx.fillStyle = PALETTE.card.background;
   ctx.fill();
+  ctx.shadowBlur = 0;
   ctx.lineWidth = risk ? CARD_OVERLAY.riskBorderWidth : CARD_OVERLAY.borderWidth;
-  ctx.strokeStyle = risk ? PALETTE.cardRiskBorder : PALETTE.cardBorder;
+  ctx.strokeStyle = risk ? PALETTE.card.riskBorder : PALETTE.card.rewardBorder;
   ctx.stroke();
 
   const centerX = rect.x + rect.width / 2;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
 
-  ctx.fillStyle = risk ? PALETTE.cardRiskText : PALETTE.text;
-  ctx.font = `800 ${CARD_OVERLAY.titleFontSize}px ${FONT}`;
+  ctx.fillStyle = risk ? PALETTE.card.riskText : PALETTE.card.rewardText;
+  ctx.font = `${DESIGN.fontWeight.black} ${DESIGN.fontSize.body}px ${FONT}`;
   ctx.fillText(card.title, centerX, rect.y + CARD_OVERLAY.padding, innerWidth);
 
-  ctx.fillStyle = PALETTE.textMuted;
-  ctx.font = `600 ${CARD_OVERLAY.bodyFontSize}px ${FONT}`;
+  ctx.fillStyle = PALETTE.text.secondary;
+  ctx.font = `${DESIGN.fontWeight.medium} ${DESIGN.fontSize.caption}px ${FONT}`;
   const lines = wrapText(ctx, card.description, innerWidth);
-  let lineY = rect.y + CARD_OVERLAY.padding + CARD_OVERLAY.titleFontSize + 10;
+  let lineY = rect.y + CARD_OVERLAY.padding + DESIGN.fontSize.body + DESIGN.space.sm;
   for (const line of lines) {
     ctx.fillText(line, centerX, lineY, innerWidth);
     lineY += CARD_OVERLAY.bodyLineHeight;
@@ -134,13 +139,18 @@ function drawRiskBadge(ctx: CanvasRenderingContext2D, rect: CardRect): void {
     height: CARD_OVERLAY.badgeHeight,
   };
   traceRoundedRect(ctx, badge);
-  ctx.fillStyle = PALETTE.cardRiskBorder;
+  ctx.fillStyle = PALETTE.card.riskBadge;
   ctx.fill();
-  ctx.fillStyle = PALETTE.cardBadgeText;
-  ctx.font = `800 11px ${FONT}`;
+  ctx.fillStyle = PALETTE.card.badgeText;
+  ctx.font = `${DESIGN.fontWeight.black} ${DESIGN.fontSize.caption}px ${FONT}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(TEXT.riskBadge, badge.x + badge.width / 2, badge.y + badge.height / 2 + 1, badge.width);
+  ctx.fillText(
+    TEXT.riskBadge,
+    badge.x + badge.width / 2,
+    badge.y + badge.height / 2 + 1,
+    badge.width,
+  );
 }
 
 function traceRoundedRect(ctx: CanvasRenderingContext2D, rect: CardRect): void {

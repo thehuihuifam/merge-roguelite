@@ -61,21 +61,29 @@ describe('Game.openRewardChoice', () => {
     game.dispose();
   });
 
-  it('resumes dropping when opened mid-cooldown and left to time out', () => {
+  it('resumes dropping when a card is picked after an unlimited wait', () => {
     const game = new Game();
     game.start(11);
     game.drop();
     expect(game.state).toBe('dropping');
 
     expect(game.openRewardChoice(createRoundClearChoice(1))).toBe(true);
-    const steps = Math.ceil(SLOW_MOTION.choiceTimeoutMs / PHYSICS_STEP_MS);
+    // Far beyond the former 2,500ms auto-pick window: still waiting, no score.
+    const steps = Math.ceil(5000 / PHYSICS_STEP_MS);
     for (let i = 0; i < steps; i += 1) {
       game.update(PHYSICS_STEP_MS);
     }
-
-    // The default no-op selector picks nothing on timeout.
-    expect(game.state).toBe('dropping');
+    expect(game.state).toBe('slowmo_select');
     expect(game.score).toBe(0);
+
+    const picked = game.getSnapshot().pendingCards[0];
+    expect(picked).not.toBeUndefined();
+    if (picked === undefined) {
+      game.dispose();
+      return;
+    }
+    expect(game.chooseCard(picked)).toBe(true);
+    expect(game.state).toBe('dropping');
     game.dispose();
   });
 
@@ -99,21 +107,23 @@ describe('CardSlowMotionSelector.offerCards', () => {
     return new CardSlowMotionSelector(new BasicMergeCardProvider(new SeededRandom(5)));
   }
 
-  it('falls back to the first shown card on timeout', () => {
+  it('keeps the offered hand waiting instead of auto-picking on timeout', () => {
+    expect(SLOW_MOTION.choiceTimeoutMs).toBeNull();
     const selector = createSelector();
     const hand = [rewardCard('custom-a', 10), rewardCard('custom-b', 20)];
     selector.offerCards(syntheticMerge(), hand);
-    expect(selector.onTimeout(syntheticMerge())).toBe(hand[0]);
+    // Unlimited choice: no card is ever picked for the player.
+    expect(selector.onTimeout(syntheticMerge())).toBeNull();
   });
 
-  it('never hands a risk card to the timeout fallback', () => {
+  it('never hands a risk card out on a timeout call', () => {
     const selector = createSelector();
     const reward = rewardCard('custom-safe', 10);
     selector.offerCards(syntheticMerge(), [createScoreLossCard(), reward]);
-    expect(selector.onTimeout(syntheticMerge())).toBe(reward);
+    expect(selector.onTimeout(syntheticMerge())).toBeNull();
   });
 
-  it('forgets the offered hand once the choice is made', () => {
+  it('returns no fallback after the choice is made', () => {
     const selector = createSelector();
     const hand = [rewardCard('custom-a', 10), rewardCard('custom-b', 20)];
     selector.offerCards(syntheticMerge(), hand);
@@ -123,9 +133,6 @@ describe('CardSlowMotionSelector.offerCards', () => {
       return;
     }
     selector.onCardChosen(picked, syntheticMerge());
-
-    const fallback = selector.onTimeout(syntheticMerge());
-    expect(fallback).not.toBeNull();
-    expect(fallback?.id.startsWith('custom-')).toBe(false);
+    expect(selector.onTimeout(syntheticMerge())).toBeNull();
   });
 });
