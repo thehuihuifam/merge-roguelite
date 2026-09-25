@@ -2,10 +2,10 @@
 
 ## Current Status
 
-Active Next Action: Task 2.19 — 스폰 압박의 남은 발급 수 HUD 표시
+Active Next Action: Task 2.20 — 활성 점수 수정자의 읽기 전용 스냅샷 추가
 
 - 버전: v0.2.0 (차별화 메커니즘 1차 완료, v0.3.0 로그라이트 구조 진행 중)
-- 마지막 갱신: 2026-09-25 — 백로그 보충 전용 루프, Task 2.15~2.34 제안 (기능 구현 없음)
+- 마지막 갱신: 2026-09-25 — 배치 세션: Task 2.15~2.19 완료, 백로그 보충 Task 2.35~2.39
 - 규칙: 세션당 태스크 1개. 완료 시 체크박스와 위의 `Active Next Action` 을 함께 갱신한다. 번호는 재사용하지 않고 뒤에 추가만 한다.
 
 ## 이번 루프 기록 (2026-09-25)
@@ -16,6 +16,15 @@ Active Next Action: Task 2.19 — 스폰 압박의 남은 발급 수 HUD 표시
 - 중복 점검: 세이브·사운드·파티클·ModifierStack·위험선 페널티는 이미 구현됨. CONTEXT.md의 오래된 미구현 목록보다 실제 코드와 완료 기록을 우선해 재구현 태스크를 만들지 않았다. 라운드 HUD는 구현체가 있지만 `createApp.ts`의 렌더 호출에서 `round` 합성이 빠져 있으므로 연결 회귀만 별도 등록했다.
 - 검증: `npm ci`, `npm run lint`, `npm run typecheck`, `npm test` 통과 (27개 파일, 207개 테스트). 코드 변경 및 브라우저 수동 QA는 수행하지 않음.
 - 아래 신규 태스크는 각각 10분 이내의 작업 단위이며, 선행 태스크를 명시했다. 이번 PR 머지 시 제안 승인으로 간주하고 다음 세션부터 순서대로 수행한다.
+
+## 이번 루프 기록 (2026-09-25, 배치 세션 — Task 2.15~2.19)
+
+- 사용자 지시로 AGENTS.md 4.2의 기본값(세션당 태스크 1개)을 이번 세션 한정 예외 적용해, Active Next Action 순서대로 5개 태스크(2.15~2.19)를 연속 수행했다.
+- 진입 시 미완료 20개(2.15~2.34), 세션 중 완료 5개 → 세션 종료 시점 미완료 15개, 보충 수 `20 - 15 = 5`개(2.35~2.39). 보충 후 미완료 20개.
+- 각 태스크마다 lint / typecheck / 전체 테스트를 통과시켰고(최종 239개 테스트), 태스크별로 별도 커밋을 만들었다.
+- 이번 세션에 `MergeCardContext.raiseSpawnTierFloor?`(Task 2.16) 확장과 HEAVY LOAD 리스크 카드(Task 2.18)가 추가되어 `docs/ARCHITECTURE.md` 확장 포인트 표와 `docs/GDD.md` 3.2 절, `CONTEXT.md` 상태 표를 함께 갱신했다.
+- 보충 태스크 2.35~2.39는 이번 세션의 스폰 압박(HEAVY LOAD)·HUD 흐름을 이어받되, 기존 2.20~2.34 및 서로와 중복되지 않는다.
+
 
 ## Task Backlog
 
@@ -151,7 +160,7 @@ Active Next Action: Task 2.19 — 스폰 압박의 남은 발급 수 HUD 표시
 
 공통: 아래 수치와 UI 문구는 제안이다. 구현 시 수치는 `src/config/gameConfig.ts`에 모으고, 인터페이스 확장은 `docs/ARCHITECTURE.md`, 규칙 변경은 `docs/GDD.md`, 미구현 항목 완료는 `CONTEXT.md`에 함께 반영한다. 기존 메서드 시그니처는 유지하고 선택 필드·새 구현·얇은 조립 연결만 추가한다. 각 태스크의 완료 기준에 더해 lint/typecheck/전체 테스트 통과가 필수다.
 
-- [ ] **Task 2.15: 앱 렌더 단계의 라운드 HUD 연결 복구**
+- [x] **Task 2.15: 앱 렌더 단계의 라운드 HUD 연결 복구**
   - 기존 수정: `src/app/createApp.ts`. 신규: `src/app/composeRoundSnapshot.ts`, `tests/composeRoundSnapshot.test.ts`.
   - 확장 방식: 기존 `IRoundSystem.getHudState` → `RoundRunner.getHudState()` 결과를 `GameSnapshot.round`에 합성하는 작은 순수 헬퍼를 추가하고 실제 렌더 콜백에서 사용한다. Task 2.12의 HUD/라운드 구현을 다시 만들지 않는다.
   - 완료 기준: 라운드 상태가 있으면 스냅샷에 포함되고 null이면 필드가 생략되며 원본은 불변인 테스트 통과. 화면에서 ROUND/목표/남은 드롭이 표시된다. 범위는 누락된 연결만, 10분.
@@ -181,10 +190,13 @@ Active Next Action: Task 2.19 — 스폰 압박의 남은 발급 수 HUD 표시
   - `BasicMergeCardProvider.riskPool`에 1장 추가(리스크 3장 덱). `tests/basicMergeCardProvider.test.ts`의 거부 계약을 `(3,3)`→`(4,4)`로 이동(덱 확장으로 `(3,3)`이 유효해짐).
   - 테스트 추가: `tests/spawnLargerBallsCard.test.ts` 6건 — 메타데이터·설명 수치, 페널티/보상 콜백 인자, 미지원 컨텍스트 무효, 확장 덱 시드 결정성, 리스크 3장 중복 없음 + HEAVY LOAD 포함, 실Game 종단(floor 3 발급 보장).
 
-- [ ] **Task 2.19: 스폰 압박의 남은 발급 수 HUD 표시**
+- [x] **Task 2.19: 스폰 압박의 남은 발급 수 HUD 표시**
   - 선행: Task 2.18. 신규: `src/render/SpawnPenaltyHudRenderer.ts`, `tests/spawnPenaltyHud.test.ts`. 기존 수정: `src/core/Game.ts`, `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`.
   - 확장 방식: 카드 컨텍스트로 생성한 페널티를 읽기 전용 `GameSnapshot.spawnPenalty?`로 노출하고 작은 렌더러가 하한 값과 남은 신규 발급 수를 표시한다. 게임 상태를 렌더러에서 수정하지 않는다.
   - 완료 기준: 활성 시 숫자/횟수 표시, 만료·재시작 시 숨김을 스냅샷/Canvas 스텁 테스트로 확인. 기존 ROUND/NEXT와 겹치지 않는 배치. 10분.
+  - 실제 구현: `SpawnTierPenalty.hudState()`(활성 시 `{minTier, remainingIssuances}`, 비활성 null)와 `SpawnTierPenaltyState` 타입 추가. `GameSnapshot.spawnPenalty?` 선택 필드로 노출(비활성 시 필드 생략, `exactOptionalPropertyTypes` 대응 조건부 스프레드).
+  - `src/render/SpawnPenaltyHudRenderer.ts` — `drawSpawnPenaltyHud`가 스냅샷만 읽고 `SPAWN ≥3 · 2 LEFT`(위험 색 `cardRiskText`)를 우측 정렬로 그린다. 필드 없으면 무표시. 배치 상수는 `SPAWN_PENALTY_HUD`(NEXT 프리뷰 아래 y=92, 위험선 y=120 위). `CanvasRenderer`가 `drawHud` 뒤에 호출.
+  - 테스트 추가: `tests/spawnPenaltyHud.test.ts` 6건 — 활성 노출·카운트다운·만료 숨김·재시작 숨김 스냅샷 3건, 그리기/무표시/배치 경계(NEXT 프리뷰 아래·위험선 위·우측 정렬) 스텁 3건.
 
 - [ ] **Task 2.20: 활성 점수 수정자의 읽기 전용 스냅샷 추가**
   - 기존 수정: `src/core/interfaces/IScoreModifier.ts`, `src/core/score/ModifierStack.ts`, `src/core/Game.ts`, `tests/modifierStack.test.ts`. 신규: `tests/modifierSnapshot.test.ts`.
@@ -260,3 +272,32 @@ Active Next Action: Task 2.19 — 스폰 압박의 남은 발급 수 HUD 표시
   - 선행: Task 2.24. 신규: `src/systems/bindCardChoiceAudio.ts`, `tests/cardChoiceAudio.test.ts`. 기존 수정: `src/app/createApp.ts`, `src/config/gameConfig.ts`.
   - 확장 방식: `IAudioSystem`의 기존 card_pick cue를 `card:chosen` 구독자로 재생한다. 리스크는 낮은 pitch, 자동 선택은 낮은 volume으로 구분하고 app의 수동 입력 경로 직접 재생은 제거해 중복을 막는다.
   - 완료 기준: 수동 보상/리스크/타임아웃별 설정값과 성공당 정확히 1회 재생, dispose 후 무반응 테스트 통과. 새 오디오 엔진/의존성 없이 선택 결과 인지를 강화한다. 10분.
+
+### 보충 — 스폰 압박 후속 (Task 2.35~2.39, 2026-09-25 배치 세션)
+
+공통: 이번 배치 세션(Task 2.15~2.19)에서 구현한 `GameSnapshot.spawnPenalty`와 HEAVY LOAD 흐름을 소비하는 후속 태스크다. 기존 2.20~2.34 및 서로와 중복되지 않는다. 수치·문구·색은 `src/config/gameConfig.ts`와 `src/render/palette.ts`에 모으고, 이벤트 계약 확장은 `docs/ARCHITECTURE.md`에 함께 반영한다. 각 태스크의 완료 기준에 더해 lint/typecheck/전체 테스트 통과가 필수다.
+
+- [ ] **Task 2.35: NEXT 미리보기에 스폰 하한 배지 표시**
+  - 기존 수정: `src/render/HudRenderer.ts`, `src/config/gameConfig.ts`. 신규: `tests/spawnPenaltyPreview.test.ts`.
+  - 확장 방식: `GameSnapshot.spawnPenalty`(Task 2.19)가 있을 때 NEXT 프리뷰 공 옆에 `≥T{minTier}` 배지를 그린다. 기존 NEXT 그리기 로직은 변경하지 않고 스냅샷만 읽는다. 배지 위치 상수는 `SPAWN_PENALTY_HUD` 블록에 추가한다.
+  - 완료 기준: 활성 시 배지 텍스트 표시, 필드 없으면 무표시, 배지가 NEXT 프리뷰 원과 SLOW 표시에 겹치지 않는 Canvas 스텁 테스트 통과. 10분.
+
+- [ ] **Task 2.36: 스폰 페널티 마지막 발급 강조**
+  - 기존 수정: `src/render/SpawnPenaltyHudRenderer.ts`, `src/config/gameConfig.ts`, `tests/spawnPenaltyHud.test.ts`.
+  - 확장 방식: `SPAWN_PENALTY_HUD`에 `lastIssuanceRemaining`(=1)과 강조 색 상수를 추가하고, `remainingIssuances`가 임계값과 같으면 문구를 `LAST SPAWN`으로, 색을 `PALETTE.dangerLine`으로 바꿔 긴장을 강조한다. 스냅샷 판정 로직이나 코어는 손대지 않는다.
+  - 완료 기준: 임계값에서 문구·색 전환, 그 외 횟수는 기존 문구 유지, 필드 없으면 무표시 Canvas 스텁 테스트 통과. 10분.
+
+- [ ] **Task 2.37: 스폰 페널티 시작/종료 이벤트 계약 추가**
+  - 기존 수정: `src/core/events/GameEvents.ts`, `src/core/Game.ts`. 신규: `tests/spawnPenaltyEvents.test.ts`.
+  - 확장 방식: `spawn:penaltyStarted { minTier, remainingIssuances }`와 `spawn:penaltyEnded`를 이벤트 맵에 추가한다. `Game`은 페널티가 비활성→활성 전이(raise)에서 started를, 발급 소진으로 활성→비활성이 되는 순간 ended를 발화한다. `resetRun`의 해제는 run:over/restart로 충분하므로 ended 없이 조용히 지운다는 규칙을 문서로 남긴다.
+  - 완료 기준: 첫 raise에서 started 1회, 중첩 raise에서 추가 발화 없음, 정확히 N회 발급 뒤 ended 1회, 재시작 뒤 잔여 이벤트 없음 테스트 통과. 10분.
+
+- [ ] **Task 2.38: 스폰 페널티 이벤트 구독 파티클 피드백 바인더**
+  - 선행: Task 2.37. 신규: `src/systems/bindSpawnPenaltyFeedback.ts`, `tests/spawnPenaltyFeedbackBinding.test.ts`. 기존 수정: `src/app/createApp.ts`.
+  - 확장 방식: `EventBus`와 `IParticleSystem`을 주입받는 작은 바인더로, `spawn:penaltyStarted`에서 보드 상단 경고 스파크(`danger_spark`), `spawn:penaltyEnded`에서 작은 해제 버스트(`drop_dust`)를 내보낸다. `createApp.ts`에는 생성·dispose 연결만 추가한다.
+  - 완료 기준: 이벤트별 kind·intensity·위치, dispose 후 무반응, 시작/종료 반복 시마다 1회씩 재생되는 테스트 통과. 10분.
+
+- [ ] **Task 2.39: 스폰 하한 활성 중 스폰 가이드 점선 표시**
+  - 기존 수정: `src/render/SpawnPenaltyHudRenderer.ts`, `src/render/CanvasRenderer.ts`, `src/config/gameConfig.ts`, `tests/spawnPenaltyHud.test.ts`.
+  - 확장 방식: `drawSpawnPenaltyHud`에 보드 클립 안에서만 그리는 `drawSpawnFloorGuide`를 추가해, 페널티 활성 시 SPAWN_Y에서 위험선까지의 점선 가이드로 "큰 공이 떨어지는 구간"을 강조한다. 스냅샷만 읽고 대시 패턴·색·투명도는 설정 상수로 뽑는다. 기존 조준 가이드선(`HudRenderer.drawHeldBall`)과 겹치지 않게 y 범위를 위험선 위로 제한한다.
+  - 완료 기준: 활성 시 점선 세그먼트 그리기 호출 확인, 비활성·게임오버 무표시, 가이드가 위험선과 조준선 영역을 침범하지 않는 Canvas 스텁 테스트 통과. 10분.

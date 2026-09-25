@@ -120,7 +120,11 @@ describe('SpawnTierPenalty', () => {
     expect(penalty.apply(0)).toBe(2);
 
     expect((): void => penalty.raise(3, 1)).toThrow(RangeError);
-    expect((): void => { new SpawnTierPenalty(0); }).toThrow(RangeError);
-    expect((): void => { new SpawnTierPenalty(2.5); }).toThrow(RangeError);
+    expect((): void => {
+      new SpawnTierPenalty(0);
+    }).toThrow(RangeError);
+    expect((): void => {
+      new SpawnTierPenalty(2.5);
+    }).toThrow(RangeError);
   });
 });

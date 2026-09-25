@@ -180,6 +180,18 @@ export const SAVE = {
   version: 1,
 } as const;
 
+/**
+ * Spawn-penalty HUD placement (Task 2.19). Right-aligned under the NEXT
+ * preview and above the danger line, clear of the ROUND column and NEXT.
+ */
+export const SPAWN_PENALTY_HUD = {
+  /** Right text edge, board units. */
+  x: BOARD.width - 14,
+  /** Top of the label line, board units. */
+  y: 92,
+  labelFontSize: 12,
+} as const;
+
 /** Audio tuning (Task 2.6). Consumed by WebAudioSystem. */
 export const AUDIO = {
   /** Base frequency for tier 0 merge, Hz. */

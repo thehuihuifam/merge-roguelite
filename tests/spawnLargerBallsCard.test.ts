@@ -28,7 +28,10 @@ interface Recording {
   readonly dangerShifts: number[];
 }
 
-function recordingContext(options: { withFloor?: boolean } = {}): { context: MergeCardContext; recording: Recording } {
+function recordingContext(options: { withFloor?: boolean } = {}): {
+  context: MergeCardContext;
+  recording: Recording;
+} {
   const recording: Recording = { floors: [], multipliers: [], scoreDeltas: [], dangerShifts: [] };
   const context: MergeCardContext = {
     merge: mergeEvent(),

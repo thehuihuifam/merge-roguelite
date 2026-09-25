@@ -10,6 +10,7 @@ import {
 import { BallFactory, getTierSpec } from '@/core/ball/BallFactory';
 import { BallRegistry } from '@/core/ball/BallRegistry';
 import { SpawnTierPenalty } from '@/core/ball/SpawnTierPenalty';
+import type { SpawnTierPenaltyState } from '@/core/ball/SpawnTierPenalty';
 import { OverflowDetector } from '@/core/danger/OverflowDetector';
 import { EventBus } from '@/core/events/EventBus';
 import { MergeResolver } from '@/core/merge/MergeResolver';
@@ -100,6 +101,11 @@ export interface GameSnapshot {
    * the core stays unaware of the round structure. Absent means no display.
    */
   readonly round?: RoundHudState;
+  /**
+   * Active spawn-tier floor from `spawn_larger_balls` cards (Task 2.19):
+   * read-only HUD data. Absent while no penalty is in effect.
+   */
+  readonly spawnPenalty?: SpawnTierPenaltyState;
 }
 
 /**
@@ -316,6 +322,7 @@ export class Game {
     const held: HeldBall | null = this.fsm.is('aiming')
       ? { tier: this.heldTier, x: this.aimX, special: this.heldSpecial ?? null }
       : null;
+    const spawnPenalty = this.spawnPenalty.hudState();
     return {
       state: this.fsm.state,
       score: this.scoreState.score,
@@ -330,6 +337,7 @@ export class Game {
       pendingCards: this.pendingCards,
       seed: this.seed,
       chainIndex: this.chainIndex,
+      ...(spawnPenalty === null ? {} : { spawnPenalty }),
     };
   }
 

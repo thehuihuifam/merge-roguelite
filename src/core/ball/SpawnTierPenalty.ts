@@ -1,6 +1,12 @@
 import { MAX_TIER, SPAWNABLE_TIER_COUNT } from '@/config/gameConfig';
 import { isValidTier } from '@/core/ball/BallFactory';
 
+/** Read-only view of an active penalty, exposed to the HUD via the snapshot. */
+export interface SpawnTierPenaltyState {
+  readonly minTier: number;
+  readonly remainingIssuances: number;
+}
+
 /**
  * Pure state for the `spawn_larger_balls` risk penalty (Task 2.16): dispenser
  * balls are forced up to a minimum tier for the next N new issuances.
@@ -56,7 +62,9 @@ export class SpawnTierPenalty {
       );
     }
     if (!Number.isInteger(count) || count <= 0) {
-      throw new RangeError(`SpawnTierPenalty.raise: count must be a positive integer, got ${count}`);
+      throw new RangeError(
+        `SpawnTierPenalty.raise: count must be a positive integer, got ${count}`,
+      );
     }
     this.floorTier = Math.max(this.floorTier, minTier);
     this.remainingCount = Math.max(this.remainingCount, count);
@@ -87,5 +95,16 @@ export class SpawnTierPenalty {
   reset(): void {
     this.floorTier = 0;
     this.remainingCount = 0;
+  }
+
+  /**
+   * HUD view of the penalty, or null when inactive — the snapshot omits the
+   * field entirely so renderers can simply hide the display.
+   */
+  hudState(): SpawnTierPenaltyState | null {
+    if (!this.active) {
+      return null;
+    }
+    return { minTier: this.floorTier, remainingIssuances: this.remainingCount };
   }
 }
